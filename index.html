@@ -44,14 +44,13 @@
       </aside>
     </section>
 
+    <!-- Inputs + KPI strip + snapshot -->
     <section class="layout">
       <div class="card panel">
         <h2>Inputs</h2>
         <p class="section-note">Baseline consumption, rooftop options, and financial assumptions.</p>
 
         <div class="stack" style="margin-top: 14px;">
-
-          <!-- Baseline consumption -->
           <div class="grid-2">
             <div class="field"><label for="electricityUse">Annual electricity use (kWh/y)</label><input id="electricityUse" type="number" value="41150" min="0" step="1"></div>
             <div class="field"><label for="heatUse">Annual heat use (kWh/y)</label><input id="heatUse" type="number" value="120000" min="0" step="1"></div>
@@ -59,7 +58,6 @@
             <div class="field"><label for="usefulHeatLoad">Useful heat load for solar thermal (kWh/y)</label><input id="usefulHeatLoad" type="number" value="20600" min="0" step="100"></div>
           </div>
 
-          <!-- Energy mix -->
           <div class="grid-2">
             <div class="field">
               <label for="electricityMix">Current electricity mix</label>
@@ -83,59 +81,46 @@
             </div>
           </div>
 
-          <!-- Prices -->
           <div class="grid-3">
             <div class="field"><label for="electricityPrice">Electricity price (CHF/kWh)</label><input id="electricityPrice" type="number" value="0.28" min="0" step="0.01"></div>
             <div class="field"><label for="heatPrice">Heat price (CHF/kWh)</label><input id="heatPrice" type="number" value="0.12" min="0" step="0.01"></div>
             <div class="field"><label for="feedInTariff">Feed-in credit (CHF/kWh)</label><input id="feedInTariff" type="number" value="0.11" min="0" step="0.01"></div>
           </div>
 
-          <!-- Financial -->
-          <div class="grid-3">
+          <div class="grid-2">
             <div class="field"><label for="discountRate">Discount rate (%)</label><input id="discountRate" type="number" value="2.5" min="0" step="0.1"></div>
             <div class="field"><label for="horizonYears">Analysis horizon (years)</label><input id="horizonYears" type="number" value="25" min="1" step="1"></div>
-            <div class="field"><label for="gridFactor">Grid emission factor (kgCO₂e/kWh)</label><input id="gridFactor" type="number" value="0.019" min="0" step="0.001"></div>
+            <!-- grid-factor auto-shows when "custom" is selected -->
+            <div class="field" id="gridFactorField" style="display:none"><label for="gridFactor">Grid emission factor (kgCO₂e/kWh)</label><input id="gridFactor" type="number" value="0.019" min="0" step="0.001"></div>
           </div>
 
-          <!-- PV -->
           <div class="grid-3">
             <div class="field"><label for="pvArea">PV area (m²)</label><div class="range-row"><input id="pvArea" type="range" min="0" max="300" step="1" value="120"><div class="range-value" id="pvAreaValue">120</div></div></div>
             <div class="field"><label for="pvYield">PV yield (kWh/m²/y)</label><div class="range-row"><input id="pvYield" type="range" min="120" max="220" step="5" value="180"><div class="range-value" id="pvYieldValue">180</div></div></div>
             <div class="field"><label for="pvSelfShare">PV self-consumption share</label><div class="range-row"><input id="pvSelfShare" type="range" min="0.2" max="0.95" step="0.05" value="0.4"><div class="range-value" id="pvSelfShareValue">40%</div></div></div>
           </div>
 
-          <!-- Solar thermal -->
           <div class="grid-3">
             <div class="field"><label for="stArea">Solar-thermal area (m²)</label><div class="range-row"><input id="stArea" type="range" min="0" max="120" step="1" value="0"><div class="range-value" id="stAreaValue">0</div></div></div>
             <div class="field"><label for="stYield">Solar-thermal yield (kWh/m²/y)</label><div class="range-row"><input id="stYield" type="range" min="300" max="600" step="10" value="450"><div class="range-value" id="stYieldValue">450</div></div></div>
             <div class="field"><label for="stUtilization">Usable fraction</label><div class="range-row"><input id="stUtilization" type="range" min="0.2" max="0.9" step="0.05" value="0.5"><div class="range-value" id="stUtilizationValue">50%</div></div></div>
           </div>
 
-          <!-- Degradation -->
-          <div class="grid-3">
+          <div class="grid-2">
             <div class="field"><label for="pvDegradation">PV degradation (%/y)</label><div class="range-row"><input id="pvDegradation" type="range" min="0" max="2" step="0.1" value="0.7"><div class="range-value" id="pvDegradationValue">0.7%</div></div></div>
             <div class="field"><label for="stDegradation">ST degradation (%/y)</label><div class="range-row"><input id="stDegradation" type="range" min="0" max="2" step="0.1" value="0.5"><div class="range-value" id="stDegradationValue">0.5%</div></div></div>
-            <div class="field"><label for="exportDisplacement">Export displacement factor</label><div class="range-row"><input id="exportDisplacement" type="range" min="0.5" max="1" step="0.05" value="0.85"><div class="range-value" id="exportDisplacementValue">85%</div></div></div>
           </div>
 
-          <!-- CAPEX -->
           <div class="grid-3">
             <div class="field"><label for="pvCapexPerM2">PV installed cost (CHF/m²)</label><input id="pvCapexPerM2" type="number" value="450" min="0" step="10"></div>
             <div class="field"><label for="stCapexPerM2">ST installed cost (CHF/m²)</label><input id="stCapexPerM2" type="number" value="900" min="0" step="10"></div>
             <div class="field"><label for="hpCapex">Heat pump CAPEX (CHF)</label><input id="hpCapex" type="number" value="85000" min="0" step="100"></div>
           </div>
 
-          <!-- Heat pump & OPEX -->
           <div class="grid-3">
             <div class="toggle"><input id="hpEnabled" type="checkbox"><div><b>Enable heat pump swap</b><span>Converts remaining heat demand to electricity at the selected COP.</span></div></div>
             <div class="field"><label for="cop">Heat pump COP</label><input id="cop" type="number" value="3.5" min="1" step="0.1"></div>
             <div class="field"><label for="omPct">OPEX rate (% of CAPEX / y)</label><input id="omPct" type="number" value="1" min="0" step="0.1"></div>
-          </div>
-
-          <!-- View toggles -->
-          <div class="grid-2">
-            <div class="toggle"><input id="roofOptimizer" type="checkbox" checked><div><b>Show roof optimizer</b><span>Tests PV / solar-thermal split across the available roof area.</span></div></div>
-            <div class="toggle"><input id="customGridVisible" type="checkbox"><div><b>Custom grid factor</b><span>Override the electricity mix emission factor manually.</span></div></div>
           </div>
 
           <div class="actions">
@@ -148,7 +133,8 @@
         </div>
       </div>
 
-      <div class="results">
+      <!-- Right column: KPIs + snapshot only -->
+      <div class="results-top">
         <div class="kpis" aria-live="polite">
           <article class="kpi"><div class="label">CO₂ avoided</div><div class="value" id="kpiCo2">—</div><div class="sub" id="kpiCo2Sub">of baseline</div></article>
           <article class="kpi"><div class="label">Abatement cost</div><div class="value" id="kpiAbatement">—</div><div class="sub">CHF per tonne CO₂</div></article>
@@ -160,7 +146,6 @@
           <article class="kpi"><div class="label">Total CAPEX</div><div class="value" id="kpiCapex">—</div><div class="sub">CHF</div></article>
         </div>
 
-        <!-- Annual CO2 snapshot -->
         <div class="card chart-card">
           <header>
             <div>
@@ -171,77 +156,78 @@
           </header>
           <div id="snapshotChart" class="chart-wrap"></div>
         </div>
-
-        <!-- PV lifecycle + cashflow side by side -->
-        <div class="two-charts">
-          <div class="card chart-card">
-            <header>
-              <div>
-                <h3>PV production lifecycle</h3>
-                <div class="chart-note">Annual output declining due to panel degradation. Dashed amber line = financial payback year.</div>
-              </div>
-            </header>
-            <div id="pvLifecycleChart" class="chart-wrap"></div>
-          </div>
-          <div class="card chart-card">
-            <header>
-              <div>
-                <h3>Discounted cashflow</h3>
-                <div class="chart-note">Cumulative NPV over the lifetime, including feed-in revenue and OPEX.</div>
-              </div>
-            </header>
-            <div id="cashflowChart" class="chart-wrap"></div>
-          </div>
-        </div>
-
-        <!-- Roof optimizer + summary -->
-        <div class="optimizer" id="optimizerSection">
-          <div class="card chart-card">
-            <header>
-              <div>
-                <h3>Roof optimizer</h3>
-                <div class="chart-note">PV / solar-thermal split that minimizes abatement cost vs. maximizes CO₂ avoided.</div>
-              </div>
-              <div class="pill-row">
-                <span class="pill good" id="optimizerCostBadge">x* = —</span>
-                <span class="pill warn" id="optimizerCo2Badge">max CO₂ = —</span>
-              </div>
-            </header>
-            <div id="optimizerChart" class="chart-wrap"></div>
-          </div>
-
-          <div class="stack">
-            <div class="card chart-card">
-              <header>
-                <div>
-                  <h3>Summary table</h3>
-                  <div class="chart-note">Core outputs for the selected scenario.</div>
-                </div>
-              </header>
-              <table class="summary-table" id="summaryTable">
-                <thead><tr><th>Metric</th><th>Value</th></tr></thead>
-                <tbody></tbody>
-              </table>
-            </div>
-
-            <details open>
-              <summary>Method notes</summary>
-              <div class="details-body">
-                <ul>
-                  <li>Baseline CO₂ = electricity use × grid factor + heat use × heat-carrier factor.</li>
-                  <li>PV self-consumption is capped by the building's annual electrical demand.</li>
-                  <li>Excess PV earns a feed-in credit and displaces grid electricity at the configured factor.</li>
-                  <li>Solar thermal is capped by the declared useful heat load and degrades annually.</li>
-                  <li>If heat pump swap is enabled, remaining heat demand becomes electric demand at the selected COP.</li>
-                  <li>NPV discounts yearly net cashflows. Abatement cost annualizes CAPEX over the horizon.</li>
-                  <li>PV lifecycle chart shows year-by-year kWh output; the amber dashed line marks when cumulative NPV turns positive.</li>
-                </ul>
-              </div>
-            </details>
-          </div>
-        </div>
       </div>
     </section>
+
+    <!-- Full-width charts below -->
+    <div class="full-charts">
+      <div class="two-charts">
+        <div class="card chart-card">
+          <header>
+            <div>
+              <h3>PV production lifecycle</h3>
+              <div class="chart-note">Annual output declining due to panel degradation. Amber dashed line = financial payback year.</div>
+            </div>
+          </header>
+          <div id="pvLifecycleChart" class="chart-wrap"></div>
+        </div>
+        <div class="card chart-card">
+          <header>
+            <div>
+              <h3>Discounted cashflow</h3>
+              <div class="chart-note">Cumulative NPV over the lifetime, including feed-in revenue and OPEX.</div>
+            </div>
+          </header>
+          <div id="cashflowChart" class="chart-wrap"></div>
+        </div>
+      </div>
+
+      <div class="optimizer">
+        <div class="card chart-card">
+          <header>
+            <div>
+              <h3>Roof optimizer</h3>
+              <div class="chart-note">PV / solar-thermal split that minimizes abatement cost vs. maximizes CO₂ avoided.</div>
+            </div>
+            <div class="pill-row">
+              <span class="pill good" id="optimizerCostBadge">x* = —</span>
+              <span class="pill warn" id="optimizerCo2Badge">max CO₂ = —</span>
+            </div>
+          </header>
+          <div id="optimizerChart" class="chart-wrap"></div>
+        </div>
+
+        <div class="stack">
+          <div class="card chart-card">
+            <header>
+              <div>
+                <h3>Summary table</h3>
+                <div class="chart-note">Core outputs for the selected scenario.</div>
+              </div>
+            </header>
+            <table class="summary-table" id="summaryTable">
+              <thead><tr><th>Metric</th><th>Value</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <details open>
+            <summary>Method notes</summary>
+            <div class="details-body">
+              <ul>
+                <li>Baseline CO₂ = electricity use × grid factor + heat use × heat-carrier factor.</li>
+                <li>PV self-consumption is capped by the building's annual electrical demand.</li>
+                <li>Excess PV earns a feed-in credit and displaces grid electricity at the configured factor.</li>
+                <li>Solar thermal is capped by the declared useful heat load and degrades annually.</li>
+                <li>If heat pump swap is enabled, remaining heat demand becomes electric demand at the selected COP.</li>
+                <li>NPV discounts yearly net cashflows. Abatement cost annualizes CAPEX over the horizon.</li>
+                <li>PV lifecycle chart shows year-by-year kWh output; the amber dashed line marks when cumulative NPV turns positive.</li>
+              </ul>
+            </div>
+          </details>
+        </div>
+      </div>
+    </div>
 
     <div class="footer">University of Zurich · Municipality of Oberägeri · Web calculator version for the Rathaus case study.</div>
   </main>

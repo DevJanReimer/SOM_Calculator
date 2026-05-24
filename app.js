@@ -26,8 +26,6 @@ const DEFAULTS = {
   hpEnabled: false,
   cop: 3.5,
   omPct: 1,
-  roofOptimizer: true,
-  customGridVisible: false,
 };
 
 const ELECTRICITY_MIXES = {
@@ -62,7 +60,6 @@ const ids = [
   'pvDegradation', 'stDegradation', 'exportDisplacement',
   'pvCapexPerM2', 'stCapexPerM2', 'hpCapex',
   'hpEnabled', 'cop', 'omPct',
-  'roofOptimizer', 'customGridVisible',
 ];
 
 const rangeIds = {
@@ -111,10 +108,7 @@ function syncRanges(state) {
   $(rangeIds.exportDisplacement).textContent = pct(state.exportDisplacement * 100, 0);
   $('roofWarning').classList.toggle('visible', state.pvArea + state.stArea > state.roofArea + 1e-9);
   $('mixBadge').textContent = ELECTRICITY_MIXES[state.electricityMix].label;
-  $('optimizerSection').style.display = state.roofOptimizer ? '' : 'none';
-  $('roofOptimizer').checked = state.roofOptimizer;
-  $('customGridVisible').checked = state.customGridVisible;
-  $('gridFactor').parentElement.style.display = state.customGridVisible || state.electricityMix === 'custom' ? '' : 'none';
+  $('gridFactorField').style.display = state.electricityMix === 'custom' ? '' : 'none';
 }
 
 function electricityFactor(state) {
@@ -232,7 +226,7 @@ function axisTicks(max, count = 5, min = 0) {
 
 function renderStackedBarChart(el, state, scenario) {
   const width = 860;
-  const height = 340;
+  const height = 440;
   const pad = { top: 24, right: 30, bottom: 54, left: 68 };
   const innerW = width - pad.left - pad.right;
   const innerH = height - pad.top - pad.bottom;
@@ -283,7 +277,7 @@ function renderStackedBarChart(el, state, scenario) {
 
 function renderPvLifecycleChart(el, state, lifecycle) {
   const width = 860;
-  const height = 360;
+  const height = 500;
   const pad = { top: 32, right: 28, bottom: 48, left: 72 };
   const innerW = width - pad.left - pad.right;
   const innerH = height - pad.top - pad.bottom;
@@ -382,7 +376,7 @@ function linePath(values, width, height, pad) {
 
 function renderLineChart(el, series, labels, options = {}) {
   const width = 860;
-  const height = 340;
+  const height = 500;
   const pad = { top: 22, right: 24, bottom: 48, left: 68 };
   const innerW = width - pad.left - pad.right;
   const innerH = height - pad.top - pad.bottom;
@@ -448,7 +442,7 @@ function renderLineChart(el, series, labels, options = {}) {
 
 function renderOptimizerChart(el, state) {
   const width = 860;
-  const height = 340;
+  const height = 460;
   const pad = { top: 24, right: 24, bottom: 44, left: 56 };
   const innerW = width - pad.left - pad.right;
   const innerH = height - pad.top - pad.bottom;
@@ -586,8 +580,7 @@ function refresh() {
   renderLineChart($('cashflowChart'), [{ label: 'Cumulative NPV (CHF)', values: lifecycle.cumulativeNpv, color: '#b36b2b' }], lifecycle.years.map(String), { tickDecimals: 0 });
   renderKpis(state, scenario, lifecycle);
   renderSummaryTable(state, scenario, lifecycle);
-
-  if (state.roofOptimizer) renderOptimizerChart($('optimizerChart'), state);
+  renderOptimizerChart($('optimizerChart'), state);
 }
 
 function resetToDefaults() {
