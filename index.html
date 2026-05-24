@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Carbon Reduction Oberägeri | Web Calculator</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div class="card hero-copy">
+        <div class="eyebrow">Energy Optimization of Municipal Administration</div>
+        <h1>Carbon Reduction Oberägeri</h1>
+        <p class="lede">
+          A web calculator for the Rathaus case study. It combines annual energy inputs, rooftop PV and solar thermal,
+          lighting and heating efficiency, heat-pump conversion, lifecycle emissions, and discounted financial analysis
+          into one responsive dashboard.
+        </p>
+      </div>
+      <aside class="card hero-meta">
+        <div class="meta-grid">
+          <div class="meta-pill">
+            <span class="meta-label">Default electricity mix</span>
+            <div class="meta-value">WWZ 80/20</div>
+          </div>
+          <div class="meta-pill">
+            <span class="meta-label">Baseline heat source</span>
+            <div class="meta-value">Wood-chip district heat</div>
+          </div>
+          <div class="meta-pill">
+            <span class="meta-label">Default horizon</span>
+            <div class="meta-value">25 years</div>
+          </div>
+          <div class="meta-pill">
+            <span class="meta-label">Reference year</span>
+            <div class="meta-value">Rathaus 2025</div>
+          </div>
+        </div>
+        <p class="meta-note">
+          Built to reflect the Oberägeri research site: baseline data, rooftop options, annual degradation,
+          export credit, and lifecycle amortization are all linked in the model.
+        </p>
+      </aside>
+    </section>
+
+    <section class="card feature-map">
+      <header>
+        <div>
+          <h2>Feature coverage</h2>
+          <p>These are the requirements reflected in the web app.</p>
+        </div>
+        <div class="progress" aria-label="Implementation status">
+          <span id="coverageText" class="pill good">10 / 10 implemented</span>
+          <div class="progress-track"><div class="progress-bar"></div></div>
+        </div>
+      </header>
+      <ul class="feature-list">
+        <li class="feature-item"><div class="check"></div><div><div class="feature-title">Annual electricity and heat inputs</div><div class="feature-sub">Editable consumption baseline for the Rathaus.</div></div></li>
+        <li class="feature-item"><div class="check"></div><div><div class="feature-title">Rooftop area input</div><div class="feature-sub">Roof area caps the PV and solar-thermal split.</div></div></li>
+        <li class="feature-item"><div class="check"></div><div><div class="feature-title">Selectable heating method</div><div class="feature-sub">Switch between district heat, oil, gas, pellets, or heat pump.</div></div></li>
+        <li class="feature-item"><div class="check"></div><div><div class="feature-title">WWZ electricity mix selection</div><div class="feature-sub">Default 80% hydropower and 20% PV mix with swapable factors.</div></div></li>
+        <li class="feature-item"><div class="check"></div><div><div class="feature-title">Lifecycle analysis</div><div class="feature-sub">Discounted cash flow and year-by-year emissions are calculated.</div></div></li>
+        <li class="feature-item"><div class="check"></div><div><div class="feature-title">PV and solar thermal production split</div><div class="feature-sub">Compare roof use between electric and thermal generation.</div></div></li>
+        <li class="feature-item"><div class="check"></div><div><div class="feature-title">Annual degradation</div><div class="feature-sub">PV and solar-thermal output decline over the analysis horizon.</div></div></li>
+        <li class="feature-item"><div class="check"></div><div><div class="feature-title">One-year overview view</div><div class="feature-sub">Single-year snapshot with all KPI cards and attribution.</div></div></li>
+        <li class="feature-item"><div class="check"></div><div><div class="feature-title">Excess electricity revenue</div><div class="feature-sub">Exports earn a feed-in credit at the selected tariff.</div></div></li>
+        <li class="feature-item"><div class="check"></div><div><div class="feature-title">Financial amortization</div><div class="feature-sub">NPV, payback, and annualized CAPEX are included.</div></div></li>
+      </ul>
+    </section>
+
+    <section class="layout">
+      <div class="card panel">
+        <h2>Inputs</h2>
+        <p class="section-note">Baseline, assumptions, and interventions.</p>
+
+        <div class="stack" style="margin-top: 14px;">
+          <div class="grid-2">
+            <div class="field"><label for="electricityUse">Annual electricity use (kWh/y)</label><input id="electricityUse" type="number" value="41150" min="0" step="1"></div>
+            <div class="field"><label for="heatUse">Annual heat use (kWh/y)</label><input id="heatUse" type="number" value="120000" min="0" step="1"></div>
+            <div class="field"><label for="roofArea">Roof area available (m²)</label><input id="roofArea" type="number" value="220" min="0" step="1"></div>
+            <div class="field"><label for="usefulHeatLoad">Useful heat load for solar thermal (kWh/y)</label><input id="usefulHeatLoad" type="number" value="20600" min="0" step="100"></div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label for="electricityMix">Current electricity mix</label>
+              <select id="electricityMix">
+                <option value="wwz" selected>WWZ WasserSonneStrom (80% hydro / 20% PV)</option>
+                <option value="swiss">Swiss consumption mix</option>
+                <option value="hydro">Hydropower-heavy local supply</option>
+                <option value="custom">Custom grid factor</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="heatMethod">Current heating method</label>
+              <select id="heatMethod">
+                <option value="districtWood" selected>District heat - wood chips</option>
+                <option value="oil">Heating oil</option>
+                <option value="gas">Natural gas</option>
+                <option value="pellets">Wood pellets</option>
+                <option value="districtMix">District heat mix</option>
+                <option value="hp">Heat pump (existing)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid-3">
+            <div class="field"><label for="electricityPrice">Electricity price (CHF/kWh)</label><input id="electricityPrice" type="number" value="0.28" min="0" step="0.01"></div>
+            <div class="field"><label for="heatPrice">Heat price (CHF/kWh)</label><input id="heatPrice" type="number" value="0.12" min="0" step="0.01"></div>
+            <div class="field"><label for="feedInTariff">Feed-in credit (CHF/kWh)</label><input id="feedInTariff" type="number" value="0.11" min="0" step="0.01"></div>
+          </div>
+
+          <div class="grid-3">
+            <div class="field"><label for="discountRate">Discount rate (%)</label><input id="discountRate" type="number" value="2.5" min="0" step="0.1"></div>
+            <div class="field"><label for="horizonYears">Analysis horizon (years)</label><input id="horizonYears" type="number" value="25" min="1" step="1"></div>
+            <div class="field"><label for="gridFactor">Grid emission factor (kgCO2e/kWh)</label><input id="gridFactor" type="number" value="0.019" min="0" step="0.001"></div>
+          </div>
+
+          <div class="grid-3">
+            <div class="field"><label for="pvArea">PV area (m²)</label><div class="range-row"><input id="pvArea" type="range" min="0" max="300" step="1" value="120"><div class="range-value" id="pvAreaValue">120</div></div></div>
+            <div class="field"><label for="pvYield">PV yield (kWh/m²/y)</label><div class="range-row"><input id="pvYield" type="range" min="120" max="220" step="5" value="180"><div class="range-value" id="pvYieldValue">180</div></div></div>
+            <div class="field"><label for="pvSelfShare">PV self-consumption share</label><div class="range-row"><input id="pvSelfShare" type="range" min="0.2" max="0.95" step="0.05" value="0.4"><div class="range-value" id="pvSelfShareValue">40%</div></div></div>
+          </div>
+
+          <div class="grid-3">
+            <div class="field"><label for="stArea">Solar-thermal area (m²)</label><div class="range-row"><input id="stArea" type="range" min="0" max="120" step="1" value="0"><div class="range-value" id="stAreaValue">0</div></div></div>
+            <div class="field"><label for="stYield">Solar-thermal yield (kWh/m²/y)</label><div class="range-row"><input id="stYield" type="range" min="300" max="600" step="10" value="450"><div class="range-value" id="stYieldValue">450</div></div></div>
+            <div class="field"><label for="stUtilization">Usable fraction</label><div class="range-row"><input id="stUtilization" type="range" min="0.2" max="0.9" step="0.05" value="0.5"><div class="range-value" id="stUtilizationValue">50%</div></div></div>
+          </div>
+
+          <div class="grid-3">
+            <div class="field"><label for="pvDegradation">PV degradation (%/y)</label><div class="range-row"><input id="pvDegradation" type="range" min="0" max="2" step="0.1" value="0.7"><div class="range-value" id="pvDegradationValue">0.7%</div></div></div>
+            <div class="field"><label for="stDegradation">ST degradation (%/y)</label><div class="range-row"><input id="stDegradation" type="range" min="0" max="2" step="0.1" value="0.5"><div class="range-value" id="stDegradationValue">0.5%</div></div></div>
+            <div class="field"><label for="exportDisplacement">Export displacement factor</label><div class="range-row"><input id="exportDisplacement" type="range" min="0.5" max="1" step="0.05" value="0.85"><div class="range-value" id="exportDisplacementValue">85%</div></div></div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label for="ledReduction">LED retrofit electricity reduction</label>
+              <div class="range-row"><input id="ledReduction" type="range" min="0" max="30" step="1" value="15"><div class="range-value" id="ledReductionValue">15%</div></div>
+            </div>
+            <div class="field"><label for="ledCapex">LED CAPEX (CHF)</label><input id="ledCapex" type="number" value="18000" min="0" step="100"></div>
+            <div class="field">
+              <label for="smartReduction">Smart heating reduction</label>
+              <div class="range-row"><input id="smartReduction" type="range" min="0" max="25" step="1" value="10"><div class="range-value" id="smartReductionValue">10%</div></div>
+            </div>
+            <div class="field"><label for="smartCapex">Smart heating CAPEX (CHF)</label><input id="smartCapex" type="number" value="22000" min="0" step="100"></div>
+          </div>
+
+          <div class="grid-3">
+            <div class="field"><label for="pvCapexPerM2">PV installed cost (CHF/m²)</label><input id="pvCapexPerM2" type="number" value="450" min="0" step="10"></div>
+            <div class="field"><label for="stCapexPerM2">ST installed cost (CHF/m²)</label><input id="stCapexPerM2" type="number" value="900" min="0" step="10"></div>
+            <div class="field"><label for="hpCapex">Heat pump CAPEX (CHF)</label><input id="hpCapex" type="number" value="85000" min="0" step="100"></div>
+          </div>
+
+          <div class="grid-3">
+            <div class="toggle"><input id="hpEnabled" type="checkbox"><div><b>Enable heat pump swap</b><span>Converts remaining heat demand to electricity using the selected COP.</span></div></div>
+            <div class="field"><label for="cop">Heat pump COP</label><input id="cop" type="number" value="3.5" min="1" step="0.1"></div>
+            <div class="field"><label for="omPct">OPEX rate (% of CAPEX / y)</label><input id="omPct" type="number" value="1" min="0" step="0.1"></div>
+          </div>
+
+          <div class="grid-3">
+            <div class="toggle"><input id="roofOptimizer" type="checkbox" checked><div><b>Show roof optimizer</b><span>Tests PV / solar-thermal split across the roof area.</span></div></div>
+            <div class="toggle"><input id="annualView" type="checkbox" checked><div><b>Show annual lifecycle view</b><span>Plots annual CO2 and cumulative discounted cashflow.</span></div></div>
+            <div class="toggle"><input id="customGridVisible" type="checkbox"><div><b>Custom grid factor visible</b><span>Lets you override the mix emission factor.</span></div></div>
+          </div>
+
+          <div class="actions">
+            <button class="primary" id="resetBtn" type="button">Reset defaults</button>
+            <button id="rathausBtn" type="button">Load Rathaus 2025 baseline</button>
+            <button id="csvBtn" type="button">Export CSV</button>
+          </div>
+
+          <div id="roofWarning" class="warnings">PV and solar thermal exceed the available roof area.</div>
+        </div>
+      </div>
+
+      <div class="results">
+        <div class="kpis" aria-live="polite">
+          <article class="kpi"><div class="label">CO2 avoided</div><div class="value" id="kpiCo2">—</div><div class="sub" id="kpiCo2Sub">of baseline</div></article>
+          <article class="kpi"><div class="label">Abatement cost</div><div class="value" id="kpiAbatement">—</div><div class="sub">CHF per tonne CO2</div></article>
+          <article class="kpi"><div class="label">NPV</div><div class="value" id="kpiNpv">—</div><div class="sub">discounted lifecycle value</div></article>
+          <article class="kpi"><div class="label">Simple payback</div><div class="value" id="kpiPayback">—</div><div class="sub">years</div></article>
+          <article class="kpi"><div class="label">PV LCOE</div><div class="value" id="kpiLcoe">—</div><div class="sub">CHF per kWh</div></article>
+          <article class="kpi"><div class="label">Self-sufficiency</div><div class="value" id="kpiSelfSuff">—</div><div class="sub">electricity covered by on-site PV</div></article>
+          <article class="kpi"><div class="label">Carbon payback</div><div class="value" id="kpiCarbonPb">—</div><div class="sub">years</div></article>
+          <article class="kpi"><div class="label">Total CAPEX</div><div class="value" id="kpiCapex">—</div><div class="sub">CHF</div></article>
+        </div>
+
+        <div class="card chart-card">
+          <header>
+            <div>
+              <h3>Annual snapshot</h3>
+              <div class="chart-note">One-year view of baseline versus scenario, with electricity and heat separated.</div>
+            </div>
+            <div class="pill-row">
+              <span class="pill good" id="snapshotBadge">Annual model active</span>
+              <span class="pill" id="mixBadge">WWZ mix</span>
+            </div>
+          </header>
+          <div id="snapshotChart" class="chart-wrap"></div>
+        </div>
+
+        <div class="two-charts">
+          <div class="card chart-card">
+            <header>
+              <div>
+                <h3>Lifecycle CO2 reduction</h3>
+                <div class="chart-note">Annual avoided emissions with PV and ST degradation over the horizon.</div>
+              </div>
+            </header>
+            <div id="lifecycleChart" class="chart-wrap"></div>
+          </div>
+          <div class="card chart-card">
+            <header>
+              <div>
+                <h3>Discounted cashflow</h3>
+                <div class="chart-note">Cumulative NPV over the lifetime, including feed-in revenue and OPEX.</div>
+              </div>
+            </header>
+            <div id="cashflowChart" class="chart-wrap"></div>
+          </div>
+        </div>
+
+        <div class="optimizer" id="optimizerSection">
+          <div class="card chart-card">
+            <header>
+              <div>
+                <h3>Roof optimizer</h3>
+                <div class="chart-note">Searches the PV / solar-thermal split that minimizes abatement cost and the split that maximizes CO2 avoided.</div>
+              </div>
+              <div class="pill-row">
+                <span class="pill good" id="optimizerCostBadge">x* = —</span>
+                <span class="pill warn" id="optimizerCo2Badge">max CO2 = —</span>
+              </div>
+            </header>
+            <div id="optimizerChart" class="chart-wrap"></div>
+          </div>
+
+          <div class="stack">
+            <div class="card chart-card">
+              <header>
+                <div>
+                  <h3>Summary table</h3>
+                  <div class="chart-note">Core outputs for the selected scenario.</div>
+                </div>
+              </header>
+              <table class="summary-table" id="summaryTable">
+                <thead>
+                  <tr><th>Metric</th><th>Value</th></tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+
+            <details open>
+              <summary>Method notes</summary>
+              <div class="details-body">
+                <ul>
+                  <li>Baseline CO2 = electricity use × grid factor + heat use × heat-carrier factor.</li>
+                  <li>PV self-consumption is capped by the building's annual electrical demand after efficiency measures.</li>
+                  <li>Excess PV electricity earns a feed-in credit and also counts as displaced grid electricity at the configured factor.</li>
+                  <li>Solar thermal is capped by the declared useful heat load and degrades annually.</li>
+                  <li>If heat pump swap is enabled, remaining heat demand becomes electric demand at the selected COP.</li>
+                  <li>NPV discounts yearly net cashflows. Abatement cost annualizes CAPEX over the horizon.</li>
+                </ul>
+              </div>
+            </details>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer">University of Zurich · Municipality of Oberägeri · Web calculator version for the Rathaus case study.</div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
