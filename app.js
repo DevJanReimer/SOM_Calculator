@@ -5,6 +5,8 @@ const DEFAULTS = {
   usefulHeatLoad: 20600,
   electricityMix: 'wwz',
   heatMethod: 'districtWood',
+  newElectricityMix: 'wwz',
+  newHeatMethod: 'districtWood',
   electricityPrice: 0.28,
   heatPrice: 0.12,
   feedInTariff: 0.11,
@@ -51,7 +53,7 @@ const pct = (n, d = 0) => Number.isFinite(n) ? `${fmt(n, d)}%` : '—';
 
 const ids = [
   'electricityUse', 'heatUse', 'roofArea', 'usefulHeatLoad',
-  'electricityMix', 'heatMethod',
+  'electricityMix', 'heatMethod', 'newElectricityMix', 'newHeatMethod',
   'electricityPrice', 'heatPrice', 'feedInTariff',
   'discountRate', 'horizonYears', 'gridFactor',
   'pvArea', 'pvYield', 'pvSelfShare',
@@ -119,9 +121,21 @@ function heatFactor(state) {
   return HEAT_METHODS[state.heatMethod].factor;
 }
 
+function newElectricityFactor(state) {
+  return state.newElectricityMix === 'custom' ? state.gridFactor : ELECTRICITY_MIXES[state.newElectricityMix].factor;
+}
+
+function newHeatFactor(state) {
+  if (state.hpEnabled) return newElectricityFactor(state) / Math.max(state.cop, 1e-6);
+  if (state.newHeatMethod === 'hp') return newElectricityFactor(state) / Math.max(state.cop, 1e-6);
+  return HEAT_METHODS[state.newHeatMethod].factor;
+}
+
 function annualScenario(state, yearIndex = 0, overrides = {}) {
   const gridEF = electricityFactor(state);
   const heatEF = heatFactor(state);
+  const newGridEF = newElectricityFactor(state);
+  const newHeatEF = newHeatFactor(state);
   const pvDeg = Math.max(0, 1 - state.pvDegradation / 100);
   const stDeg = Math.max(0, 1 - state.stDegradation / 100);
   const pvFactor = Math.pow(pvDeg, yearIndex);
@@ -149,15 +163,9 @@ function annualScenario(state, yearIndex = 0, overrides = {}) {
   const electricityResidual = Math.max(netElectricDemand - pvSelf, 0);
   const heatResidual = state.hpEnabled ? 0 : heatAfterThermal;
 
-  const avoidedST = state.hpEnabled
-    ? heatThermalUseful * (gridEF / Math.max(state.cop, 1e-6))
-    : heatThermalUseful * heatEF;
-  const avoidedHP = state.hpEnabled
-    ? heatAfterThermal * (heatEF - gridEF / Math.max(state.cop, 1e-6))
-    : 0;
-  const avoidedPV = pvSelf * gridEF + pvExport * gridEF * EXPORT_DISPLACEMENT;
-
-  const scenarioCO2 = baselineCO2 - (avoidedST + avoidedHP + avoidedPV);
+  // Scenario CO₂ is computed directly from residual demands × new factors.
+  // This captures PV/ST savings, heat-pump conversion, fuel switching, and grid decarbonisation in one number.
+  const scenarioCO2 = electricityResidual * newGridEF + heatResidual * newHeatEF;
   const scenarioCost = electricityResidual * state.electricityPrice + heatResidual * state.heatPrice - pvExport * state.feedInTariff;
   const savings = baselineCost - scenarioCost;
 
@@ -173,7 +181,7 @@ function annualScenario(state, yearIndex = 0, overrides = {}) {
   const annualAvoided = baselineCO2 - scenarioCO2;
 
   return {
-    yearIndex, gridEF, heatEF,
+    yearIndex, gridEF, heatEF, newGridEF, newHeatEF,
     baselineElectricity, baselineHeat, baselineCO2, baselineCost,
     pvGeneration, pvSelf, pvExport,
     heatThermalUseful, heatAfterThermal, hpElectricity,
@@ -231,8 +239,8 @@ function renderStackedBarChart(el, state, scenario) {
   const innerH = height - pad.top - pad.bottom;
   const baseElectricity = scenario.baselineElectricity * scenario.gridEF / 1000;
   const baseHeat = scenario.baselineHeat * scenario.heatEF / 1000;
-  const scenarioElectricity = (scenario.electricityResidual * scenario.gridEF) / 1000;
-  const scenarioHeat = (scenario.heatResidual * scenario.heatEF) / 1000;
+  const scenarioElectricity = (scenario.electricityResidual * scenario.newGridEF) / 1000;
+  const scenarioHeat = (scenario.heatResidual * scenario.newHeatEF) / 1000;
   const maxY = Math.max(baseElectricity + baseHeat, scenarioElectricity + scenarioHeat) * 1.18 || 1;
   const barW = 120;
   const x1 = pad.left + innerW * 0.32 - barW / 2;

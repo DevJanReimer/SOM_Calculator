@@ -58,9 +58,12 @@
             <div class="field"><label for="usefulHeatLoad">Useful heat load for solar thermal (kWh/y)</label><input id="usefulHeatLoad" type="number" value="20600" min="0" step="100"></div>
           </div>
 
-          <div class="grid-2">
+          <div class="scenario-grid">
+            <div class="scenario-col-label">Current (baseline)</div>
+            <div class="scenario-col-label">New (scenario)</div>
+
             <div class="field">
-              <label for="electricityMix">Current electricity mix</label>
+              <label for="electricityMix">Electricity mix</label>
               <select id="electricityMix">
                 <option value="wwz" selected>WWZ WasserSonneStrom (80% hydro / 20% PV)</option>
                 <option value="swiss">Swiss consumption mix</option>
@@ -69,14 +72,35 @@
               </select>
             </div>
             <div class="field">
-              <label for="heatMethod">Current heating method</label>
+              <label for="newElectricityMix">Electricity mix</label>
+              <select id="newElectricityMix">
+                <option value="wwz" selected>WWZ WasserSonneStrom (80% hydro / 20% PV)</option>
+                <option value="swiss">Swiss consumption mix</option>
+                <option value="hydro">Hydropower-heavy local supply</option>
+                <option value="custom">Custom grid factor</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="heatMethod">Heating method</label>
               <select id="heatMethod">
                 <option value="districtWood" selected>District heat – wood chips</option>
                 <option value="oil">Heating oil</option>
                 <option value="gas">Natural gas</option>
                 <option value="pellets">Wood pellets</option>
                 <option value="districtMix">District heat mix</option>
-                <option value="hp">Heat pump (existing)</option>
+                <option value="hp">Heat pump</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="newHeatMethod">Heating method</label>
+              <select id="newHeatMethod">
+                <option value="districtWood" selected>District heat – wood chips</option>
+                <option value="oil">Heating oil</option>
+                <option value="gas">Natural gas</option>
+                <option value="pellets">Wood pellets</option>
+                <option value="districtMix">District heat mix</option>
+                <option value="hp">Heat pump</option>
               </select>
             </div>
           </div>
