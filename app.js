@@ -19,7 +19,6 @@ const DEFAULTS = {
   stUtilization: 0.5,
   pvDegradation: 0.7,
   stDegradation: 0.5,
-  exportDisplacement: 0.85,
   pvCapexPerM2: 450,
   stCapexPerM2: 900,
   hpCapex: 85000,
@@ -57,7 +56,7 @@ const ids = [
   'discountRate', 'horizonYears', 'gridFactor',
   'pvArea', 'pvYield', 'pvSelfShare',
   'stArea', 'stYield', 'stUtilization',
-  'pvDegradation', 'stDegradation', 'exportDisplacement',
+  'pvDegradation', 'stDegradation',
   'pvCapexPerM2', 'stCapexPerM2', 'hpCapex',
   'hpEnabled', 'cop', 'omPct',
 ];
@@ -71,8 +70,9 @@ const rangeIds = {
   stUtilization: 'stUtilizationValue',
   pvDegradation: 'pvDegradationValue',
   stDegradation: 'stDegradationValue',
-  exportDisplacement: 'exportDisplacementValue',
 };
+
+const EXPORT_DISPLACEMENT = 0.85;
 
 function readState() {
   const state = {};
@@ -156,7 +156,7 @@ function annualScenario(state, yearIndex = 0, overrides = {}) {
   const avoidedHP = state.hpEnabled
     ? heatAfterThermal * (heatEF - gridEF / Math.max(state.cop, 1e-6))
     : 0;
-  const avoidedPV = pvSelf * gridEF + pvExport * gridEF * state.exportDisplacement;
+  const avoidedPV = pvSelf * gridEF + pvExport * gridEF * EXPORT_DISPLACEMENT;
 
   const scenarioCO2 = baselineCO2 - (avoidedST + avoidedHP + avoidedPV);
   const scenarioCost = electricityResidual * state.electricityPrice + heatResidual * state.heatPrice - pvExport * state.feedInTariff;
