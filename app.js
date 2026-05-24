@@ -105,7 +105,6 @@ function syncRanges(state) {
   $(rangeIds.stUtilization).textContent = pct(state.stUtilization * 100, 0);
   $(rangeIds.pvDegradation).textContent = `${fmt(state.pvDegradation, 1)}%`;
   $(rangeIds.stDegradation).textContent = `${fmt(state.stDegradation, 1)}%`;
-  $(rangeIds.exportDisplacement).textContent = pct(state.exportDisplacement * 100, 0);
   $('roofWarning').classList.toggle('visible', state.pvArea + state.stArea > state.roofArea + 1e-9);
   $('mixBadge').textContent = ELECTRICITY_MIXES[state.electricityMix].label;
   $('gridFactorField').style.display = state.electricityMix === 'custom' ? '' : 'none';
