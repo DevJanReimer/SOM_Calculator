@@ -590,9 +590,24 @@ function refresh() {
   renderOptimizerChart($('optimizerChart'), state);
 }
 
+function calculate() {
+  // sync range labels before calculating so warnings are correct
+  const state = readState();
+  syncRanges(state);
+  refresh();
+  document.querySelector('.shell').classList.replace('show-inputs', 'show-results');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function showInputs() {
+  document.querySelector('.shell').classList.replace('show-results', 'show-inputs');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 function resetToDefaults() {
   writeState(DEFAULTS);
-  refresh();
+  syncRangeLabels();
+  showInputs();
 }
 
 function loadRathausBaseline() {
@@ -606,7 +621,8 @@ function loadRathausBaseline() {
     stArea: 0,
     hpEnabled: false,
   });
-  refresh();
+  syncRangeLabels();
+  showInputs();
 }
 
 function exportCsv() {
@@ -642,23 +658,31 @@ function exportCsv() {
   URL.revokeObjectURL(url);
 }
 
+function syncRangeLabels() {
+  const state = readState();
+  syncRanges(state);
+}
+
 function bindEvents() {
-  ids.forEach((id) => {
+  // range sliders update their labels live (no full recalculation)
+  Object.keys(rangeIds).forEach((id) => {
     const el = $(id);
-    if (!el) return;
-    el.addEventListener('input', refresh);
-    el.addEventListener('change', refresh);
+    if (el) el.addEventListener('input', syncRangeLabels);
   });
+  // grid factor field visibility when mix changes
+  $('electricityMix').addEventListener('change', syncRangeLabels);
+
+  $('calculateBtn').addEventListener('click', calculate);
+  $('backBtn').addEventListener('click', showInputs);
   $('resetBtn').addEventListener('click', resetToDefaults);
   $('rathausBtn').addEventListener('click', loadRathausBaseline);
   $('csvBtn').addEventListener('click', exportCsv);
-  $('electricityMix').addEventListener('change', refresh);
 }
 
 function init() {
   writeState(DEFAULTS);
   bindEvents();
-  refresh();
+  syncRangeLabels();
 }
 
 window.addEventListener('DOMContentLoaded', init);
