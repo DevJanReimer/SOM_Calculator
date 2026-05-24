@@ -20,10 +20,6 @@ const DEFAULTS = {
   pvDegradation: 0.7,
   stDegradation: 0.5,
   exportDisplacement: 0.85,
-  ledReduction: 15,
-  ledCapex: 18000,
-  smartReduction: 10,
-  smartCapex: 22000,
   pvCapexPerM2: 450,
   stCapexPerM2: 900,
   hpCapex: 85000,
@@ -31,7 +27,6 @@ const DEFAULTS = {
   cop: 3.5,
   omPct: 1,
   roofOptimizer: true,
-  annualView: true,
   customGridVisible: false,
 };
 
@@ -51,18 +46,23 @@ const HEAT_METHODS = {
   hp: { label: 'Heat pump (existing)', factor: null },
 };
 
-const EMBODIED = { pvPerM2: 420, stPerM2: 90, hpUnit: 1200, ledFixed: 12 };
+const EMBODIED = { pvPerM2: 420, stPerM2: 90, hpUnit: 1200 };
 
 const $ = (id) => document.getElementById(id);
 const fmt = (n, d = 0) => Number.isFinite(n) ? n.toLocaleString('de-CH', { maximumFractionDigits: d, minimumFractionDigits: d }) : '—';
 const pct = (n, d = 0) => Number.isFinite(n) ? `${fmt(n, d)}%` : '—';
 
 const ids = [
-  'electricityUse','heatUse','roofArea','usefulHeatLoad','electricityMix','heatMethod','electricityPrice','heatPrice',
-  'feedInTariff','discountRate','horizonYears','gridFactor','pvArea','pvYield','pvSelfShare','stArea','stYield',
-  'stUtilization','pvDegradation','stDegradation','exportDisplacement','ledReduction','ledCapex','smartReduction',
-  'smartCapex','pvCapexPerM2','stCapexPerM2','hpCapex','hpEnabled','cop','omPct','roofOptimizer','annualView',
-  'customGridVisible'
+  'electricityUse', 'heatUse', 'roofArea', 'usefulHeatLoad',
+  'electricityMix', 'heatMethod',
+  'electricityPrice', 'heatPrice', 'feedInTariff',
+  'discountRate', 'horizonYears', 'gridFactor',
+  'pvArea', 'pvYield', 'pvSelfShare',
+  'stArea', 'stYield', 'stUtilization',
+  'pvDegradation', 'stDegradation', 'exportDisplacement',
+  'pvCapexPerM2', 'stCapexPerM2', 'hpCapex',
+  'hpEnabled', 'cop', 'omPct',
+  'roofOptimizer', 'customGridVisible',
 ];
 
 const rangeIds = {
@@ -75,8 +75,6 @@ const rangeIds = {
   pvDegradation: 'pvDegradationValue',
   stDegradation: 'stDegradationValue',
   exportDisplacement: 'exportDisplacementValue',
-  ledReduction: 'ledReductionValue',
-  smartReduction: 'smartReductionValue'
 };
 
 function readState() {
@@ -111,13 +109,9 @@ function syncRanges(state) {
   $(rangeIds.pvDegradation).textContent = `${fmt(state.pvDegradation, 1)}%`;
   $(rangeIds.stDegradation).textContent = `${fmt(state.stDegradation, 1)}%`;
   $(rangeIds.exportDisplacement).textContent = pct(state.exportDisplacement * 100, 0);
-  $(rangeIds.ledReduction).textContent = pct(state.ledReduction, 0);
-  $(rangeIds.smartReduction).textContent = pct(state.smartReduction, 0);
   $('roofWarning').classList.toggle('visible', state.pvArea + state.stArea > state.roofArea + 1e-9);
   $('mixBadge').textContent = ELECTRICITY_MIXES[state.electricityMix].label;
-  $('snapshotBadge').textContent = state.annualView ? 'Annual model active' : 'Annual model hidden';
   $('optimizerSection').style.display = state.roofOptimizer ? '' : 'none';
-  $('annualView').checked = state.annualView;
   $('roofOptimizer').checked = state.roofOptimizer;
   $('customGridVisible').checked = state.customGridVisible;
   $('gridFactor').parentElement.style.display = state.customGridVisible || state.electricityMix === 'custom' ? '' : 'none';
@@ -128,9 +122,8 @@ function electricityFactor(state) {
 }
 
 function heatFactor(state) {
-  const method = HEAT_METHODS[state.heatMethod];
   if (state.heatMethod === 'hp') return electricityFactor(state) / Math.max(state.cop, 1e-6);
-  return method.factor;
+  return HEAT_METHODS[state.heatMethod].factor;
 }
 
 function annualScenario(state, yearIndex = 0, overrides = {}) {
@@ -146,29 +139,23 @@ function annualScenario(state, yearIndex = 0, overrides = {}) {
   const baselineElectricity = state.electricityUse;
   const baselineHeat = state.heatUse;
   const baselineCO2 = baselineElectricity * gridEF + baselineHeat * heatEF;
-
-  const reducedElectricity = baselineElectricity * (1 - state.ledReduction / 100);
-  const reducedHeat = baselineHeat * (1 - state.smartReduction / 100);
+  const baselineCost = baselineElectricity * state.electricityPrice + baselineHeat * state.heatPrice;
 
   const pvGeneration = pvArea * state.pvYield * pvFactor;
   const pvPotentialSelf = pvGeneration * state.pvSelfShare;
 
   const heatThermalRaw = stArea * state.stYield * stFactor * state.stUtilization;
   const heatThermalUseful = Math.min(heatThermalRaw, state.usefulHeatLoad);
-  const heatAfterThermal = Math.max(reducedHeat - heatThermalUseful, 0);
+  const heatAfterThermal = Math.max(baselineHeat - heatThermalUseful, 0);
 
   const hpElectricity = state.hpEnabled ? heatAfterThermal / Math.max(state.cop, 1e-6) : 0;
-  const netElectricDemandBeforePV = reducedElectricity + hpElectricity;
-  const pvSelf = Math.min(pvPotentialSelf, netElectricDemandBeforePV);
+  const netElectricDemand = baselineElectricity + hpElectricity;
+  const pvSelf = Math.min(pvPotentialSelf, netElectricDemand);
   const pvExport = Math.max(pvGeneration - pvSelf, 0);
 
-  const electricityResidual = Math.max(netElectricDemandBeforePV - pvSelf, 0);
+  const electricityResidual = Math.max(netElectricDemand - pvSelf, 0);
   const heatResidual = state.hpEnabled ? 0 : heatAfterThermal;
 
-  const avoidedLED = baselineElectricity * (state.ledReduction / 100) * gridEF;
-  const avoidedSmart = state.hpEnabled
-    ? baselineHeat * (state.smartReduction / 100) * (gridEF / Math.max(state.cop, 1e-6))
-    : baselineHeat * (state.smartReduction / 100) * heatEF;
   const avoidedST = state.hpEnabled
     ? heatThermalUseful * (gridEF / Math.max(state.cop, 1e-6))
     : heatThermalUseful * heatEF;
@@ -177,18 +164,17 @@ function annualScenario(state, yearIndex = 0, overrides = {}) {
     : 0;
   const avoidedPV = pvSelf * gridEF + pvExport * gridEF * state.exportDisplacement;
 
-  const scenarioCO2 = baselineCO2 - (avoidedLED + avoidedSmart + avoidedST + avoidedHP + avoidedPV);
+  const scenarioCO2 = baselineCO2 - (avoidedST + avoidedHP + avoidedPV);
   const scenarioCost = electricityResidual * state.electricityPrice + heatResidual * state.heatPrice - pvExport * state.feedInTariff;
-  const baselineCost = baselineElectricity * state.electricityPrice + baselineHeat * state.heatPrice;
   const savings = baselineCost - scenarioCost;
 
   const pvCapex = pvArea * state.pvCapexPerM2;
   const stCapex = stArea * state.stCapexPerM2;
   const hpCapex = state.hpEnabled ? state.hpCapex : 0;
-  const capex = pvCapex + stCapex + state.ledCapex + state.smartCapex + hpCapex;
+  const capex = pvCapex + stCapex + hpCapex;
 
   const omRate = state.omPct / 100;
-  const om = (pvCapex + stCapex) * omRate + stCapex * omRate + hpCapex * (omRate * 1.5);
+  const om = (pvCapex + stCapex) * omRate + hpCapex * (omRate * 1.5);
 
   const annualCashflow = savings - om;
   const annualAvoided = baselineCO2 - scenarioCO2;
@@ -196,11 +182,10 @@ function annualScenario(state, yearIndex = 0, overrides = {}) {
   return {
     yearIndex, gridEF, heatEF,
     baselineElectricity, baselineHeat, baselineCO2, baselineCost,
-    reducedElectricity, reducedHeat,
     pvGeneration, pvSelf, pvExport,
     heatThermalUseful, heatAfterThermal, hpElectricity,
     electricityResidual, heatResidual,
-    avoidedLED, avoidedSmart, avoidedST, avoidedHP, avoidedPV,
+    avoidedST, avoidedHP, avoidedPV,
     scenarioCO2, scenarioCost, savings,
     capex, om, annualCashflow, annualAvoided,
     pvCapex, stCapex, hpCapex,
@@ -211,22 +196,24 @@ function lifecycleSeries(state) {
   const horizon = Math.max(1, Math.round(state.horizonYears));
   const discount = state.discountRate / 100;
   const years = [];
+  const pvGeneration = [];
+  const stGeneration = [];
   const annualAvoided = [];
-  const annualCashflow = [];
   const cumulativeNpv = [];
   let npv = -annualScenario(state, 0).capex;
 
   for (let year = 0; year < horizon; year += 1) {
     const s = annualScenario(state, year);
     years.push(year + 1);
+    pvGeneration.push(s.pvGeneration);
+    stGeneration.push(s.heatThermalUseful);
     annualAvoided.push(s.annualAvoided / 1000);
-    annualCashflow.push(s.annualCashflow);
     const discounted = s.annualCashflow / Math.pow(1 + discount, year + 1);
     npv += discounted;
     cumulativeNpv.push(npv);
   }
 
-  return { years, annualAvoided, annualCashflow, cumulativeNpv };
+  return { years, pvGeneration, stGeneration, annualAvoided, cumulativeNpv };
 }
 
 function annuityFactor(rate, years) {
@@ -237,10 +224,10 @@ function annuityFactor(rate, years) {
 
 function renderSvg(el, svg) { el.innerHTML = svg; }
 
-function axisTicks(max, count = 5) {
-  if (max <= 0) return [0];
-  const step = max / count;
-  return Array.from({ length: count + 1 }, (_, index) => index * step);
+function axisTicks(max, count = 5, min = 0) {
+  if (max <= min) return [min];
+  const step = (max - min) / count;
+  return Array.from({ length: count + 1 }, (_, i) => min + i * step);
 }
 
 function renderStackedBarChart(el, state, scenario) {
@@ -257,21 +244,19 @@ function renderStackedBarChart(el, state, scenario) {
   const barW = 120;
   const x1 = pad.left + innerW * 0.32 - barW / 2;
   const x2 = pad.left + innerW * 0.72 - barW / 2;
-  const scaleY = (value) => innerH - (value / maxY) * innerH;
+  const scaleY = (v) => innerH - (v / maxY) * innerH;
 
   const yTicks = axisTicks(maxY, 5);
   const tickMarks = yTicks.map((tick) => {
     const y = pad.top + scaleY(tick);
     return `
-      <line x1="${pad.left}" y1="${y}" x2="${width - pad.right}" y2="${y}" stroke="rgba(105, 114, 122, 0.18)" />
-      <text x="${pad.left - 10}" y="${y + 4}" text-anchor="end" font-size="11" fill="#67727a">${fmt(tick, 1)}</text>
-    `;
+      <line x1="${pad.left}" y1="${y}" x2="${width - pad.right}" y2="${y}" stroke="rgba(105,114,122,0.18)" />
+      <text x="${pad.left - 10}" y="${y + 4}" text-anchor="end" font-size="11" fill="#67727a">${fmt(tick, 1)}</text>`;
   }).join('');
 
-  const baseElH = innerH - (baseElectricity / maxY) * innerH;
-  const baseHeatH = innerH - ((baseElectricity + baseHeat) / maxY) * innerH;
-  const scenElH = innerH - (scenarioElectricity / maxY) * innerH;
-  const scenHeatH = innerH - ((scenarioElectricity + scenarioHeat) / maxY) * innerH;
+  const baseElH = scaleY(baseElectricity);
+  const scenElH = scaleY(scenarioElectricity);
+  const scenHeatH = scaleY(scenarioElectricity + scenarioHeat);
 
   const svg = `
     <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Annual snapshot chart">
@@ -279,100 +264,185 @@ function renderStackedBarChart(el, state, scenario) {
       ${tickMarks}
       <line x1="${pad.left}" y1="${pad.top + innerH}" x2="${width - pad.right}" y2="${pad.top + innerH}" stroke="rgba(23,33,38,0.38)" />
       <line x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${pad.top + innerH}" stroke="rgba(23,33,38,0.38)" />
-
       <text x="${x1 + barW / 2}" y="${height - 18}" text-anchor="middle" font-size="12" fill="#516069">Baseline</text>
       <text x="${x2 + barW / 2}" y="${height - 18}" text-anchor="middle" font-size="12" fill="#516069">Scenario</text>
-
-      <rect x="${x1}" y="${pad.top + baseElH}" width="${barW}" height="${(baseHeat / maxY) * innerH}" rx="14" fill="#8da85f"></rect>
+      <rect x="${x1}" y="${pad.top + scaleY(baseElectricity + baseHeat)}" width="${barW}" height="${(baseHeat / maxY) * innerH}" rx="14" fill="#8da85f"></rect>
       <rect x="${x1}" y="${pad.top}" width="${barW}" height="${(baseElectricity / maxY) * innerH}" rx="14" fill="#cddab0"></rect>
       <rect x="${x2}" y="${pad.top + scenHeatH}" width="${barW}" height="${(scenarioHeat / maxY) * innerH}" rx="14" fill="#6a8b6f"></rect>
       <rect x="${x2}" y="${pad.top + scenElH}" width="${barW}" height="${(scenarioElectricity / maxY) * innerH}" rx="14" fill="#dfe8cb"></rect>
-
-      <text x="${x1 + barW / 2}" y="${pad.top + baseElH - 8}" text-anchor="middle" font-size="12" font-weight="700" fill="#27413a">${fmt(baseElectricity + baseHeat, 1)}</text>
+      <text x="${x1 + barW / 2}" y="${pad.top + scaleY(baseElectricity + baseHeat) - 8}" text-anchor="middle" font-size="12" font-weight="700" fill="#27413a">${fmt(baseElectricity + baseHeat, 1)}</text>
       <text x="${x2 + barW / 2}" y="${pad.top + scenElH - 8}" text-anchor="middle" font-size="12" font-weight="700" fill="#27413a">${fmt(scenarioElectricity + scenarioHeat, 1)}</text>
-
+      <text x="${pad.left - 10}" y="${pad.top - 8}" text-anchor="end" font-size="11" fill="#67727a">tCO₂/y</text>
       <rect x="${width - 212}" y="${pad.top + 6}" width="14" height="14" rx="4" fill="#cddab0"></rect>
       <text x="${width - 192}" y="${pad.top + 17}" font-size="12" fill="#516069">Electricity</text>
       <rect x="${width - 118}" y="${pad.top + 6}" width="14" height="14" rx="4" fill="#8da85f"></rect>
       <text x="${width - 98}" y="${pad.top + 17}" font-size="12" fill="#516069">Heat</text>
-    </svg>
-  `;
+    </svg>`;
+  renderSvg(el, svg);
+}
+
+function renderPvLifecycleChart(el, state, lifecycle) {
+  const width = 860;
+  const height = 360;
+  const pad = { top: 32, right: 28, bottom: 48, left: 72 };
+  const innerW = width - pad.left - pad.right;
+  const innerH = height - pad.top - pad.bottom;
+
+  const hasST = lifecycle.stGeneration.some((v) => v > 0);
+  const allValues = [...lifecycle.pvGeneration, ...(hasST ? lifecycle.stGeneration : [])];
+  const maxY = Math.max(...allValues) * 1.15 || 1;
+  const n = lifecycle.years.length;
+
+  const toX = (i) => pad.left + (i / Math.max(n - 1, 1)) * innerW;
+  const toY = (v) => pad.top + (1 - v / maxY) * innerH;
+
+  const pvPath = lifecycle.pvGeneration.map((v, i) => `${i === 0 ? 'M' : 'L'} ${toX(i).toFixed(1)} ${toY(v).toFixed(1)}`).join(' ');
+  const stPath = hasST
+    ? lifecycle.stGeneration.map((v, i) => `${i === 0 ? 'M' : 'L'} ${toX(i).toFixed(1)} ${toY(v).toFixed(1)}`).join(' ')
+    : '';
+
+  // filled area under PV curve
+  const pvFillPath = `${pvPath} L ${toX(n - 1).toFixed(1)} ${(pad.top + innerH).toFixed(1)} L ${pad.left} ${(pad.top + innerH).toFixed(1)} Z`;
+
+  const yTicks = axisTicks(maxY, 5);
+  const gridLines = yTicks.map((tick) => {
+    const y = toY(tick);
+    return `
+      <line x1="${pad.left}" y1="${y}" x2="${width - pad.right}" y2="${y}" stroke="rgba(105,114,122,0.15)" />
+      <text x="${pad.left - 10}" y="${y + 4}" text-anchor="end" font-size="11" fill="#67727a">${fmt(tick / 1000, 1)}k</text>`;
+  }).join('');
+
+  const xTicks = lifecycle.years.map((yr, i) => {
+    if (n > 10 && i % Math.ceil(n / 6) !== 0 && i !== n - 1) return '';
+    return `<text x="${toX(i)}" y="${height - 14}" text-anchor="middle" font-size="11" fill="#67727a">${yr}</text>`;
+  }).join('');
+
+  // end-point annotation: show final output vs year-1
+  const pvFirst = lifecycle.pvGeneration[0];
+  const pvLast = lifecycle.pvGeneration[n - 1];
+  const dropPct = pvFirst > 0 ? ((pvFirst - pvLast) / pvFirst) * 100 : 0;
+  const totalPvKwh = lifecycle.pvGeneration.reduce((a, b) => a + b, 0);
+
+  // dot at last point
+  const lastX = toX(n - 1);
+  const lastY = toY(pvLast);
+  const annotation = `
+    <circle cx="${lastX}" cy="${lastY}" r="4" fill="#3d5b43" />
+    <rect x="${lastX - 96}" y="${lastY - 34}" width="92" height="28" rx="8" fill="rgba(39,65,58,0.88)" />
+    <text x="${lastX - 50}" y="${lastY - 20}" text-anchor="middle" font-size="11" fill="#e8f0e9">${fmt(pvLast, 0)} kWh</text>
+    <text x="${lastX - 50}" y="${lastY - 8}" text-anchor="middle" font-size="10" fill="#a8c9ab">−${fmt(dropPct, 1)}% vs yr 1</text>`;
+
+  // payback year line (first year cumNPV turns positive)
+  const pbYear = lifecycle.cumulativeNpv.findIndex((v) => v >= 0);
+  let paybackLine = '';
+  if (pbYear >= 0) {
+    const pbX = toX(pbYear);
+    paybackLine = `
+      <line x1="${pbX}" y1="${pad.top}" x2="${pbX}" y2="${pad.top + innerH}" stroke="rgba(179,107,43,0.55)" stroke-width="1.5" stroke-dasharray="5 4" />
+      <text x="${pbX + 5}" y="${pad.top + 14}" font-size="11" fill="#b36b2b">Payback yr ${lifecycle.years[pbYear]}</text>`;
+  }
+
+  const legend = `
+    <rect x="${pad.left}" y="8" width="12" height="12" rx="3" fill="#3d5b43" opacity="0.22"></rect>
+    <line x1="${pad.left}" y1="14" x2="${pad.left + 12}" y2="14" stroke="#3d5b43" stroke-width="2.5"></line>
+    <text x="${pad.left + 18}" y="18" font-size="12" fill="#516069">PV output (kWh/y)</text>
+    ${hasST ? `<line x1="${pad.left + 148}" y1="14" x2="${pad.left + 162}" y2="14" stroke="#5a7680" stroke-width="2.5" stroke-dasharray="5 3"></line>
+    <text x="${pad.left + 168}" y="18" font-size="12" fill="#516069">ST heat (kWh/y)</text>` : ''}
+    <text x="${width - pad.right}" y="18" text-anchor="end" font-size="11" fill="#66727a">Total PV over ${n}y: ${fmt(totalPvKwh / 1000, 0)}k kWh</text>`;
+
+  const svg = `
+    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="PV production lifecycle chart">
+      ${gridLines}
+      <line x1="${pad.left}" y1="${pad.top + innerH}" x2="${width - pad.right}" y2="${pad.top + innerH}" stroke="rgba(23,33,38,0.38)" />
+      <line x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${pad.top + innerH}" stroke="rgba(23,33,38,0.38)" />
+      ${paybackLine}
+      <path d="${pvFillPath}" fill="rgba(61,91,67,0.10)" />
+      <path d="${pvPath}" fill="none" stroke="#3d5b43" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+      ${hasST ? `<path d="${stPath}" fill="none" stroke="#5a7680" stroke-width="2" stroke-dasharray="6 4" stroke-linecap="round" stroke-linejoin="round" />` : ''}
+      ${annotation}
+      ${xTicks}
+      <text x="${pad.left - 10}" y="${pad.top - 12}" text-anchor="end" font-size="11" fill="#67727a">kWh/y</text>
+      ${legend}
+    </svg>`;
   renderSvg(el, svg);
 }
 
 function linePath(values, width, height, pad) {
   const n = values.length;
   if (!n) return '';
-  const max = Math.max(...values, 0.0001);
-  const min = Math.min(...values, 0);
-  const span = Math.max(max - min, 1e-9);
-  return values.map((value, index) => {
-    const x = pad.left + (index / Math.max(n - 1, 1)) * (width - pad.left - pad.right);
-    const y = pad.top + (1 - ((value - min) / span)) * (height - pad.top - pad.bottom);
-    return `${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
+  const maxV = Math.max(...values, 0.0001);
+  const minV = Math.min(...values, 0);
+  const span = Math.max(maxV - minV, 1e-9);
+  return values.map((v, i) => {
+    const x = pad.left + (i / Math.max(n - 1, 1)) * (width - pad.left - pad.right);
+    const y = pad.top + (1 - ((v - minV) / span)) * (height - pad.top - pad.bottom);
+    return `${i === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
   }).join(' ');
 }
 
 function renderLineChart(el, series, labels, options = {}) {
   const width = 860;
   const height = 340;
-  const pad = { top: 22, right: 24, bottom: 48, left: 60 };
+  const pad = { top: 22, right: 24, bottom: 48, left: 68 };
   const innerW = width - pad.left - pad.right;
   const innerH = height - pad.top - pad.bottom;
   const maxValue = Math.max(...series.flatMap((s) => s.values), 0.0001);
   const minValue = Math.min(0, ...series.flatMap((s) => s.values));
   const span = Math.max(maxValue - minValue, 1e-9);
-  const yTicks = axisTicks(maxValue, 5);
+  const yTicks = axisTicks(maxValue, 5, minValue < 0 ? minValue : 0);
 
   const axes = yTicks.map((tick) => {
     const y = pad.top + (1 - ((tick - minValue) / span)) * innerH;
     return `
-      <line x1="${pad.left}" y1="${y}" x2="${width - pad.right}" y2="${y}" stroke="rgba(105, 114, 122, 0.18)" />
-      <text x="${pad.left - 10}" y="${y + 4}" text-anchor="end" font-size="11" fill="#67727a">${fmt(tick, options.tickDecimals ?? 1)}</text>
-    `;
+      <line x1="${pad.left}" y1="${y}" x2="${width - pad.right}" y2="${y}" stroke="rgba(105,114,122,0.18)" />
+      <text x="${pad.left - 10}" y="${y + 4}" text-anchor="end" font-size="11" fill="#67727a">${fmt(tick, options.tickDecimals ?? 0)}</text>`;
   }).join('');
 
-  const xTicks = labels.map((label, index) => {
-    if (labels.length > 10 && index % Math.ceil(labels.length / 6) !== 0 && index !== labels.length - 1) return '';
-    const x = pad.left + (index / Math.max(labels.length - 1, 1)) * innerW;
-    return `
-      <text x="${x}" y="${height - 18}" text-anchor="middle" font-size="11" fill="#67727a">${label}</text>
-    `;
+  const xTicks = labels.map((label, i) => {
+    if (labels.length > 10 && i % Math.ceil(labels.length / 6) !== 0 && i !== labels.length - 1) return '';
+    const x = pad.left + (i / Math.max(labels.length - 1, 1)) * innerW;
+    return `<text x="${x}" y="${height - 14}" text-anchor="middle" font-size="11" fill="#67727a">${label}</text>`;
   }).join('');
 
-  const palette = ['#3d5b43', '#b36b2b', '#5a7680', '#7b5f8f'];
-  const paths = series.map((s, index) => {
+  const palette = ['#b36b2b', '#3d5b43', '#5a7680', '#7b5f8f'];
+  const zeroY = pad.top + (1 - ((0 - minValue) / span)) * innerH;
+
+  const fills = series.map((s, i) => {
     const d = linePath(s.values, width, height, pad);
-    return `
-      <path d="${d}" fill="none" stroke="${s.color ?? palette[index % palette.length]}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
-    `;
+    const n = s.values.length;
+    const fillClose = `L ${pad.left + ((n - 1) / Math.max(n - 1, 1)) * innerW} ${zeroY} L ${pad.left} ${zeroY} Z`;
+    return `<path d="${d} ${fillClose}" fill="${s.color ?? palette[i % palette.length]}" opacity="0.07" />`;
   }).join('');
 
-  const dots = series.flatMap((s, seriesIndex) => s.values.map((value, valueIndex) => {
-    const x = pad.left + (valueIndex / Math.max(s.values.length - 1, 1)) * innerW;
-    const y = pad.top + (1 - ((value - minValue) / span)) * innerH;
-    return `<circle cx="${x}" cy="${y}" r="2.8" fill="${s.color ?? palette[seriesIndex % palette.length]}" opacity="0.9"></circle>`;
+  const paths = series.map((s, i) => {
+    const d = linePath(s.values, width, height, pad);
+    return `<path d="${d}" fill="none" stroke="${s.color ?? palette[i % palette.length]}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />`;
+  }).join('');
+
+  const dots = series.flatMap((s, si) => s.values.map((v, vi) => {
+    const x = pad.left + (vi / Math.max(s.values.length - 1, 1)) * innerW;
+    const y = pad.top + (1 - ((v - minValue) / span)) * innerH;
+    return `<circle cx="${x}" cy="${y}" r="2.6" fill="${s.color ?? palette[si % palette.length]}" opacity="0.9"></circle>`;
   })).join('');
 
-  const legend = series.map((s, index) => `
-    <g transform="translate(${width - 250 + index * 82}, 10)">
-      <rect x="0" y="0" width="14" height="14" rx="4" fill="${s.color ?? palette[index % palette.length]}"></rect>
-      <text x="20" y="11" font-size="12" fill="#516069">${s.label}</text>
-    </g>
-  `).join('');
+  const legend = series.map((s, i) => `
+    <g transform="translate(${width - 260 + i * 130}, 10)">
+      <rect x="0" y="0" width="12" height="12" rx="3" fill="${s.color ?? palette[i % palette.length]}"></rect>
+      <text x="18" y="10" font-size="12" fill="#516069">${s.label}</text>
+    </g>`).join('');
+
+  if (minValue < 0) {
+    // zero line
+  }
 
   const svg = `
     <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Lifecycle chart">
-      <rect x="0" y="0" width="${width}" height="${height}" rx="18" fill="rgba(255,255,255,0.01)"></rect>
       ${axes}
       <line x1="${pad.left}" y1="${pad.top + innerH}" x2="${width - pad.right}" y2="${pad.top + innerH}" stroke="rgba(23,33,38,0.38)" />
       <line x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${pad.top + innerH}" stroke="rgba(23,33,38,0.38)" />
-      ${paths}
-      ${dots}
-      ${legend}
-      ${xTicks}
-    </svg>
-  `;
+      ${minValue < 0 ? `<line x1="${pad.left}" y1="${zeroY}" x2="${width - pad.right}" y2="${zeroY}" stroke="rgba(23,33,38,0.22)" stroke-dasharray="4 3" />` : ''}
+      ${fills}${paths}${dots}${legend}${xTicks}
+    </svg>`;
   renderSvg(el, svg);
 }
 
@@ -385,6 +455,7 @@ function renderOptimizerChart(el, state) {
   const points = [];
   let bestCost = { x: 0, value: Infinity };
   let bestCo2 = { x: 0, value: -Infinity };
+
   for (let i = 0; i <= 24; i += 1) {
     const x = i / 24;
     const pvArea = state.roofArea * x;
@@ -402,25 +473,24 @@ function renderOptimizerChart(el, state) {
   const minC = Math.min(...points.map((p) => p.cost ?? 0), 0);
   const costSpan = Math.max(maxC - minC, 1e-9);
 
-  const co2Path = points.map((point, index) => {
-    const x = pad.left + (index / Math.max(points.length - 1, 1)) * innerW;
+  const co2Path = points.map((point, i) => {
+    const x = pad.left + (i / Math.max(points.length - 1, 1)) * innerW;
     const y = pad.top + (1 - (point.avoided / maxA)) * innerH;
-    return `${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
+    return `${i === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
   }).join(' ');
 
-  const costPath = points.filter((p) => p.cost !== null).map((point, index) => {
+  const costPath = points.filter((p) => p.cost !== null).map((point, i) => {
     const idx = points.indexOf(point);
     const x = pad.left + (idx / Math.max(points.length - 1, 1)) * innerW;
     const y = pad.top + (1 - ((point.cost - minC) / costSpan)) * innerH;
-    return `${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
+    return `${i === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
   }).join(' ');
 
   const ticks = axisTicks(maxA, 4).map((tick) => {
     const y = pad.top + (1 - (tick / maxA)) * innerH;
     return `
-      <line x1="${pad.left}" y1="${y}" x2="${width - pad.right}" y2="${y}" stroke="rgba(105, 114, 122, 0.18)" />
-      <text x="${pad.left - 8}" y="${y + 4}" text-anchor="end" font-size="11" fill="#67727a">${fmt(tick, 1)}</text>
-    `;
+      <line x1="${pad.left}" y1="${y}" x2="${width - pad.right}" y2="${y}" stroke="rgba(105,114,122,0.18)" />
+      <text x="${pad.left - 8}" y="${y + 4}" text-anchor="end" font-size="11" fill="#67727a">${fmt(tick, 1)}</text>`;
   }).join('');
 
   const svg = `
@@ -431,8 +501,8 @@ function renderOptimizerChart(el, state) {
       <line x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${pad.top + innerH}" stroke="rgba(23,33,38,0.38)" />
       <path d="${co2Path}" fill="none" stroke="#3d5b43" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
       <path d="${costPath}" fill="none" stroke="#b36b2b" stroke-width="3" stroke-dasharray="6 6" stroke-linecap="round" stroke-linejoin="round" />
-      ${points.map((point, index) => {
-        const x = pad.left + (index / Math.max(points.length - 1, 1)) * innerW;
+      ${points.map((point, i) => {
+        const x = pad.left + (i / Math.max(points.length - 1, 1)) * innerW;
         const y = pad.top + (1 - (point.avoided / maxA)) * innerH;
         return `<circle cx="${x}" cy="${y}" r="2.6" fill="#3d5b43"></circle>`;
       }).join('')}
@@ -444,33 +514,37 @@ function renderOptimizerChart(el, state) {
       }).join('')}
       ${Array.from({ length: 6 }, (_, i) => {
         const x = pad.left + (i / 5) * innerW;
-        const label = (i / 5).toFixed(2);
-        return `<text x="${x}" y="${height - 16}" text-anchor="middle" font-size="11" fill="#67727a">${label}</text>`;
+        return `<text x="${x}" y="${height - 14}" text-anchor="middle" font-size="11" fill="#67727a">${(i / 5).toFixed(2)}</text>`;
       }).join('')}
       <rect x="${width - 242}" y="${pad.top + 4}" width="14" height="14" rx="4" fill="#3d5b43"></rect>
-      <text x="${width - 222}" y="${pad.top + 15}" font-size="12" fill="#516069">CO2 avoided</text>
+      <text x="${width - 222}" y="${pad.top + 15}" font-size="12" fill="#516069">CO₂ avoided</text>
       <rect x="${width - 126}" y="${pad.top + 4}" width="14" height="14" rx="4" fill="#b36b2b"></rect>
-      <text x="${width - 106}" y="${pad.top + 15}" font-size="12" fill="#516069">Cost</text>
-    </svg>
-  `;
+      <text x="${width - 106}" y="${pad.top + 15}" font-size="12" fill="#516069">Abatement cost</text>
+    </svg>`;
   renderSvg(el, svg);
   $('optimizerCostBadge').textContent = `x* = ${bestCost.x.toFixed(2)} / ${fmt(bestCost.value, 0)} CHF/t`;
-  $('optimizerCo2Badge').textContent = `max CO2 = ${bestCo2.x.toFixed(2)} / ${fmt(bestCo2.value / 1000, 2)} t`;
+  $('optimizerCo2Badge').textContent = `max CO₂ = ${bestCo2.x.toFixed(2)} / ${fmt(bestCo2.value / 1000, 2)} t`;
 }
 
 function renderSummaryTable(state, scenario, lifecycle) {
+  const n = lifecycle.years.length;
+  const pvFirst = lifecycle.pvGeneration[0];
+  const pvLast = lifecycle.pvGeneration[n - 1];
+  const totalPv = lifecycle.pvGeneration.reduce((a, b) => a + b, 0);
   const rows = [
-    ['Baseline CO2', `${fmt(scenario.baselineCO2 / 1000, 2)} tCO2/y`],
-    ['Scenario CO2', `${fmt(scenario.scenarioCO2 / 1000, 2)} tCO2/y`],
-    ['CO2 avoided', `${fmt(scenario.annualAvoided / 1000, 2)} tCO2/y`],
+    ['Baseline CO₂', `${fmt(scenario.baselineCO2 / 1000, 2)} tCO₂/y`],
+    ['Scenario CO₂', `${fmt(scenario.scenarioCO2 / 1000, 2)} tCO₂/y`],
+    ['CO₂ avoided (yr 1)', `${fmt(scenario.annualAvoided / 1000, 2)} tCO₂/y`],
     ['Baseline cost', `${fmt(scenario.baselineCost, 0)} CHF/y`],
     ['Scenario cost', `${fmt(scenario.scenarioCost, 0)} CHF/y`],
     ['Annual savings', `${fmt(scenario.savings, 0)} CHF/y`],
+    ['PV output yr 1', `${fmt(pvFirst, 0)} kWh`],
+    [`PV output yr ${n}`, `${fmt(pvLast, 0)} kWh`],
+    [`Total PV over ${n} years`, `${fmt(totalPv / 1000, 0)} MWh`],
     ['PV self-consumption', `${fmt(scenario.pvSelf, 0)} kWh/y`],
     ['PV export', `${fmt(scenario.pvExport, 0)} kWh/y`],
     ['Solar thermal useful heat', `${fmt(scenario.heatThermalUseful, 0)} kWh/y`],
-    ['Annual cashflow', `${fmt(scenario.annualCashflow, 0)} CHF/y`],
-    ['Lifecycle NPV', `${fmt(lifecycle.cumulativeNpv[lifecycle.cumulativeNpv.length - 1], 0)} CHF`],
+    ['Lifecycle NPV', `${fmt(lifecycle.cumulativeNpv[n - 1], 0)} CHF`],
     ['Total CAPEX', `${fmt(scenario.capex, 0)} CHF`],
   ];
   const tbody = $('summaryTable').querySelector('tbody');
@@ -478,9 +552,12 @@ function renderSummaryTable(state, scenario, lifecycle) {
 }
 
 function renderKpis(state, scenario, lifecycle) {
+  const n = lifecycle.years.length;
   const annualized = scenario.capex * annuityFactor(state.discountRate / 100, Math.max(1, Math.round(state.horizonYears)));
   const abatement = scenario.annualAvoided > 0 ? ((annualized + scenario.om - scenario.savings) / (scenario.annualAvoided / 1000)) : NaN;
-  const lcoe = state.pvArea > 0 ? ((state.pvCapexPerM2 * state.pvArea) * annuityFactor(state.discountRate / 100, Math.max(1, Math.round(state.horizonYears))) + (state.pvCapexPerM2 * state.pvArea) * (state.omPct / 100)) / Math.max(scenario.pvGeneration, 1e-6) : NaN;
+  const lcoe = state.pvArea > 0
+    ? ((state.pvCapexPerM2 * state.pvArea) * annuityFactor(state.discountRate / 100, Math.max(1, n)) + (state.pvCapexPerM2 * state.pvArea) * (state.omPct / 100)) / Math.max(scenario.pvGeneration, 1e-6)
+    : NaN;
   const selfSuff = scenario.baselineElectricity > 0 ? (scenario.pvSelf / scenario.baselineElectricity) * 100 : 0;
   const embodied = state.pvArea * EMBODIED.pvPerM2 + state.stArea * EMBODIED.stPerM2 + (state.hpEnabled ? EMBODIED.hpUnit : 0);
   const carbonPb = scenario.annualAvoided > 0 ? embodied / scenario.annualAvoided : NaN;
@@ -489,47 +566,28 @@ function renderKpis(state, scenario, lifecycle) {
   $('kpiCo2').textContent = `${fmt(scenario.annualAvoided / 1000, 2)} t`;
   $('kpiCo2Sub').textContent = scenario.baselineCO2 > 0 ? `${fmt((scenario.annualAvoided / scenario.baselineCO2) * 100, 0)}% of baseline` : 'of baseline';
   $('kpiAbatement').textContent = Number.isFinite(abatement) ? `${fmt(abatement, 0)}` : '—';
-  $('kpiNpv').textContent = `${fmt(lifecycle.cumulativeNpv[lifecycle.cumulativeNpv.length - 1], 0)} CHF`;
+  $('kpiNpv').textContent = `${fmt(lifecycle.cumulativeNpv[n - 1], 0)} CHF`;
   $('kpiPayback').textContent = Number.isFinite(payback) ? fmt(payback, 1) : '—';
   $('kpiLcoe').textContent = Number.isFinite(lcoe) ? fmt(lcoe, 2) : '—';
   $('kpiSelfSuff').textContent = `${fmt(selfSuff, 0)}%`;
   $('kpiCarbonPb').textContent = Number.isFinite(carbonPb) ? fmt(carbonPb, 1) : '—';
   $('kpiCapex').textContent = `${fmt(scenario.capex, 0)} CHF`;
-
-  return { annualized, abatement, lcoe, selfSuff, carbonPb, payback };
-}
-
-function renderLifecycleCharts(state, lifecycle) {
-  const annualSeries = [
-    { label: 'Avoided CO2 (t/y)', values: lifecycle.annualAvoided, color: '#3d5b43' },
-  ];
-  const cashflowSeries = [
-    { label: 'Cumulative NPV (CHF)', values: lifecycle.cumulativeNpv, color: '#b36b2b' },
-  ];
-  renderLineChart($('lifecycleChart'), annualSeries, lifecycle.years.map(String), { tickDecimals: 1 });
-  renderLineChart($('cashflowChart'), cashflowSeries, lifecycle.years.map(String), { tickDecimals: 0 });
-}
-
-function updateCustomGridVisibility(state) {
-  $('gridFactor').parentElement.style.display = state.customGridVisible || state.electricityMix === 'custom' ? '' : 'none';
 }
 
 function refresh() {
   const state = readState();
   syncRanges(state);
-  updateCustomGridVisibility(state);
 
   const scenario = annualScenario(state, 0);
   const lifecycle = lifecycleSeries(state);
 
   renderStackedBarChart($('snapshotChart'), state, scenario);
-  renderLifecycleCharts(state, lifecycle);
+  renderPvLifecycleChart($('pvLifecycleChart'), state, lifecycle);
+  renderLineChart($('cashflowChart'), [{ label: 'Cumulative NPV (CHF)', values: lifecycle.cumulativeNpv, color: '#b36b2b' }], lifecycle.years.map(String), { tickDecimals: 0 });
   renderKpis(state, scenario, lifecycle);
   renderSummaryTable(state, scenario, lifecycle);
 
   if (state.roofOptimizer) renderOptimizerChart($('optimizerChart'), state);
-
-  $('coverageText').textContent = '10 / 10 implemented';
 }
 
 function resetToDefaults() {
@@ -546,8 +604,6 @@ function loadRathausBaseline() {
     heatMethod: 'districtWood',
     pvArea: 0,
     stArea: 0,
-    ledReduction: 5,
-    smartReduction: 0,
     hpEnabled: false,
   });
   refresh();
@@ -557,6 +613,7 @@ function exportCsv() {
   const state = readState();
   const lifecycle = lifecycleSeries(state);
   const scenario = annualScenario(state, 0);
+  const n = lifecycle.years.length;
   const rows = [
     ['Metric', 'Value'],
     ['Electricity use (kWh/y)', state.electricityUse],
@@ -566,11 +623,14 @@ function exportCsv() {
     ['Heat method', HEAT_METHODS[state.heatMethod].label],
     ['PV area (m²)', state.pvArea],
     ['ST area (m²)', state.stArea],
-    ['Annual avoided CO2 (t)', (scenario.annualAvoided / 1000).toFixed(3)],
+    ['PV output yr 1 (kWh)', Math.round(lifecycle.pvGeneration[0])],
+    [`PV output yr ${n} (kWh)`, Math.round(lifecycle.pvGeneration[n - 1])],
+    [`Total PV over ${n} years (MWh)`, (lifecycle.pvGeneration.reduce((a, b) => a + b, 0) / 1000).toFixed(1)],
+    ['Annual avoided CO₂ (t)', (scenario.annualAvoided / 1000).toFixed(3)],
     ['Scenario cost (CHF/y)', Math.round(scenario.scenarioCost)],
     ['Annual savings (CHF/y)', Math.round(scenario.savings)],
     ['Total CAPEX (CHF)', Math.round(scenario.capex)],
-    ['Lifecycle NPV (CHF)', Math.round(lifecycle.cumulativeNpv[lifecycle.cumulativeNpv.length - 1])],
+    ['Lifecycle NPV (CHF)', Math.round(lifecycle.cumulativeNpv[n - 1])],
   ];
   const csv = rows.map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
@@ -592,7 +652,6 @@ function bindEvents() {
   $('resetBtn').addEventListener('click', resetToDefaults);
   $('rathausBtn').addEventListener('click', loadRathausBaseline);
   $('csvBtn').addEventListener('click', exportCsv);
-  $('customGridVisible').addEventListener('change', refresh);
   $('electricityMix').addEventListener('change', refresh);
 }
 
