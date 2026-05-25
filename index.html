@@ -8,6 +8,80 @@
 </head>
 <body>
 
+  <!-- ── BACKGROUND TREES ───────────────────────────────────────── -->
+  <div class="bg-forest" aria-hidden="true">
+    <svg class="bg-trees" viewBox="0 0 1440 520" preserveAspectRatio="xMidYMax meet" xmlns="http://www.w3.org/2000/svg">
+      <!-- Each group gets its own sway class; transform-origin at base -->
+
+      <!-- Far-left cluster -->
+      <g class="sway sway-a" style="transform-origin:62px 420px">
+        <polygon points="32,420 62,300 92,420" fill="currentColor"/>
+        <polygon points="40,390 62,310 84,390" fill="currentColor" opacity=".6"/>
+        <rect x="59" y="415" width="6" height="28" fill="currentColor"/>
+      </g>
+      <g class="sway sway-c" style="transform-origin:115px 420px">
+        <polygon points="88,420 115,320 142,420" fill="currentColor"/>
+        <rect x="112" y="415" width="6" height="28" fill="currentColor"/>
+      </g>
+
+      <!-- Left-centre -->
+      <g class="sway sway-b" style="transform-origin:240px 430px">
+        <polygon points="200,430 240,280 280,430" fill="currentColor"/>
+        <polygon points="212,400 240,300 268,400" fill="currentColor" opacity=".55"/>
+        <rect x="237" y="424" width="7" height="34" fill="currentColor"/>
+      </g>
+      <g class="sway sway-d" style="transform-origin:310px 420px">
+        <polygon points="278,420 310,330 342,420" fill="currentColor"/>
+        <rect x="307" y="415" width="6" height="26" fill="currentColor"/>
+      </g>
+
+      <!-- Centre cluster -->
+      <g class="sway sway-a" style="transform-origin:520px 440px">
+        <polygon points="476,440 520,270 564,440" fill="currentColor"/>
+        <polygon points="492,408 520,292 548,408" fill="currentColor" opacity=".5"/>
+        <rect x="517" y="433" width="8" height="38" fill="currentColor"/>
+      </g>
+      <g class="sway sway-c" style="transform-origin:600px 430px">
+        <polygon points="566,430 600,300 634,430" fill="currentColor"/>
+        <rect x="597" y="424" width="7" height="30" fill="currentColor"/>
+      </g>
+      <g class="sway sway-e" style="transform-origin:660px 420px">
+        <polygon points="634,420 660,340 686,420" fill="currentColor"/>
+        <rect x="657" y="415" width="6" height="22" fill="currentColor"/>
+      </g>
+
+      <!-- Right-centre -->
+      <g class="sway sway-b" style="transform-origin:840px 438px">
+        <polygon points="798,438 840,275 882,438" fill="currentColor"/>
+        <polygon points="812,410 840,295 868,410" fill="currentColor" opacity=".5"/>
+        <rect x="837" y="431" width="8" height="36" fill="currentColor"/>
+      </g>
+      <g class="sway sway-d" style="transform-origin:920px 428px">
+        <polygon points="888,428 920,318 952,428" fill="currentColor"/>
+        <rect x="917" y="422" width="6" height="28" fill="currentColor"/>
+      </g>
+
+      <!-- Far-right cluster -->
+      <g class="sway sway-a" style="transform-origin:1100px 432px">
+        <polygon points="1062,432 1100,290 1138,432" fill="currentColor"/>
+        <polygon points="1076,405 1100,308 1124,405" fill="currentColor" opacity=".55"/>
+        <rect x="1097" y="426" width="7" height="32" fill="currentColor"/>
+      </g>
+      <g class="sway sway-c" style="transform-origin:1180px 422px">
+        <polygon points="1150,422 1180,330 1210,422" fill="currentColor"/>
+        <rect x="1177" y="416" width="6" height="26" fill="currentColor"/>
+      </g>
+      <g class="sway sway-e" style="transform-origin:1260px 430px">
+        <polygon points="1228,430 1260,310 1292,430" fill="currentColor"/>
+        <rect x="1257" y="424" width="6" height="30" fill="currentColor"/>
+      </g>
+      <g class="sway sway-b" style="transform-origin:1370px 420px">
+        <polygon points="1336,420 1370,305 1404,420" fill="currentColor"/>
+        <rect x="1367" y="415" width="6" height="26" fill="currentColor"/>
+      </g>
+    </svg>
+  </div>
+
   <!-- ── INTRO ANIMATION ─────────────────────────────────────────── -->
   <div id="introOverlay" class="intro-overlay" aria-hidden="true">
     <div class="intro-scene">
@@ -335,13 +409,6 @@
 
   </div>
   <script src="app.js"></script>
-  <script>
-    // Cursor glow: update CSS custom properties with mouse position
-    document.addEventListener('mousemove', (e) => {
-      document.body.style.setProperty('--cx', e.clientX + 'px');
-      document.body.style.setProperty('--cy', e.clientY + 'px');
-    });
-  </script>
   <script>
     // Intro animation: fade out overlay, fade in app
     window.addEventListener('DOMContentLoaded', () => {
