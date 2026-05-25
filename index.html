@@ -7,9 +7,46 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="shell show-inputs">
 
-    <!-- ── INPUTS PANE ──────────────────────────────────────────── -->
+  <!-- ── INTRO ANIMATION ─────────────────────────────────────────── -->
+  <div id="introOverlay" class="intro-overlay" aria-hidden="true">
+    <div class="intro-scene">
+      <div class="intro-trees">
+        <svg class="tree-svg" viewBox="0 0 420 220" xmlns="http://www.w3.org/2000/svg">
+          <!-- Back trees -->
+          <polygon points="70,180 90,100 110,180" fill="rgba(45,71,51,0.45)"/>
+          <rect x="87" y="175" width="6" height="20" fill="rgba(45,71,51,0.35)"/>
+          <polygon points="310,180 335,90 360,180" fill="rgba(45,71,51,0.45)"/>
+          <rect x="331" y="175" width="7" height="20" fill="rgba(45,71,51,0.35)"/>
+          <!-- Mid trees -->
+          <polygon points="140,185 170,80 200,185" fill="#3c5b42"/>
+          <polygon points="155,160 170,100 185,160" fill="#4a7053"/>
+          <rect x="167" y="180" width="7" height="26" fill="#2d4733"/>
+          <polygon points="220,185 255,75 290,185" fill="#3c5b42"/>
+          <polygon points="238,158 255,98 272,158" fill="#4a7053"/>
+          <rect x="252" y="180" width="8" height="26" fill="#2d4733"/>
+          <!-- Front trees -->
+          <polygon points="30,200 58,110 86,200" fill="#4a7053"/>
+          <rect x="55" y="195" width="7" height="20" fill="#2d4733"/>
+          <polygon points="334,200 362,108 390,200" fill="#4a7053"/>
+          <rect x="359" y="195" width="7" height="20" fill="#2d4733"/>
+          <!-- Ground -->
+          <ellipse cx="210" cy="205" rx="190" ry="14" fill="rgba(60,91,66,0.18)"/>
+        </svg>
+      </div>
+      <div class="intro-sun"></div>
+      <div class="intro-rays">
+        <div class="ray"></div><div class="ray"></div><div class="ray"></div>
+        <div class="ray"></div><div class="ray"></div><div class="ray"></div>
+      </div>
+      <div class="intro-title">Carbon Reduction<br><span>Oberägeri</span></div>
+      <div class="intro-sub">Loading calculator…</div>
+    </div>
+  </div>
+
+  <div class="shell show-inputs" id="appShell" style="opacity:0">
+
+    <!-- ── INPUTS PANE ──────────────────────────────────────────────── -->
     <div class="inputs-pane">
       <section class="hero">
         <div class="card hero-copy">
@@ -27,7 +64,7 @@
             <div class="meta-pill"><span class="meta-label">Default horizon</span><div class="meta-value">25 years</div></div>
             <div class="meta-pill"><span class="meta-label">Reference year</span><div class="meta-value">Rathaus 2025</div></div>
           </div>
-          <p class="meta-note">Built to reflect the Oberägeri research site: baseline data, rooftop options, annual degradation, export credit, and lifecycle amortization are all linked in the model.</p>
+          <p class="meta-note">Built to reflect the Oberägeri research site: baseline data from municipal energy records, rooftop options, annual degradation, export credit, and lifecycle amortization are all linked in the model.</p>
         </aside>
       </section>
 
@@ -39,7 +76,7 @@
 
           <div class="grid-2">
             <div class="field"><label for="electricityUse">Annual electricity use (kWh/y)</label><input id="electricityUse" type="number" value="41150" min="0" step="1"></div>
-            <div class="field"><label for="heatUse">Annual heat use (kWh/y)</label><input id="heatUse" type="number" value="120000" min="0" step="1"></div>
+            <div class="field"><label for="heatUse">Annual heat use (kWh/y)</label><input id="heatUse" type="number" value="189000" min="0" step="1"></div>
             <div class="field"><label for="roofArea">Roof area available (m²)</label><input id="roofArea" type="number" value="220" min="0" step="1"></div>
             <div class="field"><label for="usefulHeatLoad">Useful heat load for solar thermal (kWh/y)</label><input id="usefulHeatLoad" type="number" value="20600" min="0" step="100"></div>
           </div>
@@ -90,28 +127,44 @@
                 <option value="hp">Heat pump</option>
               </select>
             </div>
+
+            <div class="field"><label for="currentPvArea">PV area (m²)</label><div class="range-row"><input id="currentPvArea" type="range" min="0" max="220" step="1" value="0"><div class="range-value" id="currentPvAreaValue">0</div></div></div>
+            <div class="field">
+              <label for="pvArea">PV area (m²)</label>
+              <div class="range-row"><input id="pvArea" type="range" min="0" max="220" step="1" value="120"><div class="range-value" id="pvAreaValue">120</div></div>
+              <div class="roof-pct-bar" id="pvRoofBar"><div class="roof-pct-fill roof-pct-pv" id="pvRoofFill"></div></div>
+            </div>
+
+            <div class="field"><label for="currentStArea">Solar-thermal area (m²)</label><div class="range-row"><input id="currentStArea" type="range" min="0" max="220" step="1" value="0"><div class="range-value" id="currentStAreaValue">0</div></div></div>
+            <div class="field">
+              <label for="stArea">Solar-thermal area (m²)</label>
+              <div class="range-row"><input id="stArea" type="range" min="0" max="220" step="1" value="0"><div class="range-value" id="stAreaValue">0</div></div>
+              <div class="roof-pct-bar" id="stRoofBar">
+                <div class="roof-pct-fill roof-pct-pv" id="stPvFill"></div>
+                <div class="roof-pct-fill roof-pct-st" id="stStFill"></div>
+              </div>
+              <div class="roof-usage-label" id="roofUsageLabel"></div>
+            </div>
           </div>
 
           <div class="grid-3">
-            <div class="field"><label for="electricityPrice">Electricity price (CHF/kWh)</label><input id="electricityPrice" type="number" value="0.28" min="0" step="0.01"></div>
-            <div class="field"><label for="heatPrice">Heat price (CHF/kWh)</label><input id="heatPrice" type="number" value="0.12" min="0" step="0.01"></div>
+            <div class="field"><label for="electricityPrice">Electricity price (CHF/kWh)</label><input id="electricityPrice" type="number" value="0.30" min="0" step="0.01"></div>
+            <div class="field"><label for="heatPrice">Heat price (CHF/kWh)</label><input id="heatPrice" type="number" value="0.068" min="0" step="0.001"></div>
             <div class="field"><label for="feedInTariff">Feed-in credit (CHF/kWh)</label><input id="feedInTariff" type="number" value="0.11" min="0" step="0.01"></div>
           </div>
 
           <div class="grid-2">
             <div class="field"><label for="discountRate">Discount rate (%)</label><input id="discountRate" type="number" value="2.5" min="0" step="0.1"></div>
             <div class="field"><label for="horizonYears">Analysis horizon (years)</label><input id="horizonYears" type="number" value="25" min="1" step="1"></div>
-            <div class="field" id="gridFactorField" style="display:none"><label for="gridFactor">Grid emission factor (kgCO₂e/kWh)</label><input id="gridFactor" type="number" value="0.019" min="0" step="0.001"></div>
+            <div class="field" id="gridFactorField" style="display:none"><label for="gridFactor">Grid emission factor (kgCO₂e/kWh)</label><input id="gridFactor" type="number" value="0.078" min="0" step="0.001"></div>
           </div>
 
-          <div class="grid-3">
-            <div class="field"><label for="pvArea">PV area (m²)</label><div class="range-row"><input id="pvArea" type="range" min="0" max="300" step="1" value="120"><div class="range-value" id="pvAreaValue">120</div></div></div>
+          <div class="grid-2">
             <div class="field"><label for="pvYield">PV yield (kWh/m²/y)</label><div class="range-row"><input id="pvYield" type="range" min="120" max="220" step="5" value="180"><div class="range-value" id="pvYieldValue">180</div></div></div>
             <div class="field"><label for="pvSelfShare">PV self-consumption share</label><div class="range-row"><input id="pvSelfShare" type="range" min="0.2" max="0.95" step="0.05" value="0.4"><div class="range-value" id="pvSelfShareValue">40%</div></div></div>
           </div>
 
-          <div class="grid-3">
-            <div class="field"><label for="stArea">Solar-thermal area (m²)</label><div class="range-row"><input id="stArea" type="range" min="0" max="120" step="1" value="0"><div class="range-value" id="stAreaValue">0</div></div></div>
+          <div class="grid-2">
             <div class="field"><label for="stYield">Solar-thermal yield (kWh/m²/y)</label><div class="range-row"><input id="stYield" type="range" min="300" max="600" step="10" value="450"><div class="range-value" id="stYieldValue">450</div></div></div>
             <div class="field"><label for="stUtilization">Usable fraction</label><div class="range-row"><input id="stUtilization" type="range" min="0.2" max="0.9" step="0.05" value="0.5"><div class="range-value" id="stUtilizationValue">50%</div></div></div>
           </div>
@@ -121,10 +174,26 @@
             <div class="field"><label for="stDegradation">ST degradation (%/y)</label><div class="range-row"><input id="stDegradation" type="range" min="0" max="2" step="0.1" value="0.5"><div class="range-value" id="stDegradationValue">0.5%</div></div></div>
           </div>
 
+          <!-- Investment costs with smart defaults -->
           <div class="grid-3">
-            <div class="field"><label for="pvCapexPerM2">PV installed cost (CHF/m²)</label><input id="pvCapexPerM2" type="number" value="450" min="0" step="10"></div>
-            <div class="field"><label for="stCapexPerM2">ST installed cost (CHF/m²)</label><input id="stCapexPerM2" type="number" value="900" min="0" step="10"></div>
-            <div class="field"><label for="hpCapex">Heat pump CAPEX (CHF)</label><input id="hpCapex" type="number" value="85000" min="0" step="100"></div>
+            <div class="field">
+              <label for="pvCapexTotal">PV investment (CHF)</label>
+              <input id="pvCapexTotal" type="number" value="54000" min="0" step="500" data-auto="true">
+              <div class="field-hint" id="pvCapexHint">120 m² × 450 CHF/m²</div>
+              <button type="button" class="link-btn" id="pvCapexResetBtn">Reset to area default</button>
+            </div>
+            <div class="field">
+              <label for="stCapexTotal">Solar thermal investment (CHF)</label>
+              <input id="stCapexTotal" type="number" value="0" min="0" step="500" data-auto="true">
+              <div class="field-hint" id="stCapexHint">No ST area selected</div>
+              <button type="button" class="link-btn" id="stCapexResetBtn">Reset to area default</button>
+            </div>
+            <div class="field">
+              <label for="hpCapex">Heat pump investment (CHF)</label>
+              <input id="hpCapex" type="number" value="85000" min="0" step="500">
+              <div class="field-hint" id="hpCapexHint">Manual entry or estimate below</div>
+              <button type="button" class="link-btn" id="hpCapexEstBtn">Estimate from heat demand</button>
+            </div>
           </div>
 
           <div class="grid-3">
@@ -134,6 +203,36 @@
           </div>
 
           <div id="roofWarning" class="warnings">PV and solar thermal exceed the available roof area.</div>
+
+          <!-- Expert settings: CO₂ factors & cost rates (hidden by default) -->
+          <details class="expert-panel">
+            <summary>Expert settings — CO₂ factors &amp; cost rates</summary>
+            <div class="details-body">
+              <p class="section-note" style="margin-bottom:12px">Based on published Swiss LCA data (Ecoinvent / BAFU). Edit only if you have site-specific values.</p>
+
+              <div class="expert-section-label">Electricity emission factors (kgCO₂e/kWh)</div>
+              <div class="grid-3" style="margin-bottom:14px">
+                <div class="field"><label for="co2Wwz">WWZ WasserSonneStrom</label><input id="co2Wwz" type="number" value="0.078" min="0" step="0.001"></div>
+                <div class="field"><label for="co2Swiss">Swiss consumption mix</label><input id="co2Swiss" type="number" value="0.128" min="0" step="0.001"></div>
+                <div class="field"><label for="co2Hydro">Hydropower-heavy supply</label><input id="co2Hydro" type="number" value="0.006" min="0" step="0.001"></div>
+              </div>
+
+              <div class="expert-section-label">Heat emission factors (kgCO₂e/kWh)</div>
+              <div class="grid-3" style="margin-bottom:14px">
+                <div class="field"><label for="co2DistrictWood">Wood-chip district heat</label><input id="co2DistrictWood" type="number" value="0.025" min="0" step="0.001"></div>
+                <div class="field"><label for="co2Oil">Heating oil</label><input id="co2Oil" type="number" value="0.300" min="0" step="0.001"></div>
+                <div class="field"><label for="co2Gas">Natural gas</label><input id="co2Gas" type="number" value="0.230" min="0" step="0.001"></div>
+                <div class="field"><label for="co2Pellets">Wood pellets</label><input id="co2Pellets" type="number" value="0.030" min="0" step="0.001"></div>
+                <div class="field"><label for="co2DistrictMix">District heat mix</label><input id="co2DistrictMix" type="number" value="0.130" min="0" step="0.001"></div>
+              </div>
+
+              <div class="expert-section-label">Installation cost rates (used for auto-defaults)</div>
+              <div class="grid-2">
+                <div class="field"><label for="pvCapexPerM2">PV installed cost rate (CHF/m²)</label><input id="pvCapexPerM2" type="number" value="450" min="0" step="10"></div>
+                <div class="field"><label for="stCapexPerM2">Solar thermal cost rate (CHF/m²)</label><input id="stCapexPerM2" type="number" value="900" min="0" step="10"></div>
+              </div>
+            </div>
+          </details>
 
           <div class="actions">
             <button class="primary calculate-btn" id="calculateBtn" type="button">Calculate →</button>
@@ -163,6 +262,15 @@
         <article class="kpi"><div class="label">Self-sufficiency</div><div class="value" id="kpiSelfSuff">—</div><div class="sub">electricity covered by on-site PV</div></article>
         <article class="kpi"><div class="label">Carbon payback</div><div class="value" id="kpiCarbonPb">—</div><div class="sub">years</div></article>
         <article class="kpi"><div class="label">Total CAPEX</div><div class="value" id="kpiCapex">—</div><div class="sub">CHF</div></article>
+      </div>
+
+      <div class="card adjust-panel">
+        <h3>Quick adjust</h3>
+        <div class="adjust-grid">
+          <div class="field"><label for="rPvArea">New PV area (m²)</label><div class="range-row"><input id="rPvArea" type="range" min="0" max="220" step="1" value="120"><div class="range-value" id="rPvAreaValue">120</div></div></div>
+          <div class="field"><label for="rStArea">New solar-thermal area (m²)</label><div class="range-row"><input id="rStArea" type="range" min="0" max="220" step="1" value="0"><div class="range-value" id="rStAreaValue">0</div></div></div>
+          <div class="field"><label for="rPvSelfShare">PV self-consumption share</label><div class="range-row"><input id="rPvSelfShare" type="range" min="0.2" max="0.95" step="0.05" value="0.4"><div class="range-value" id="rPvSelfShareValue">40%</div></div></div>
+        </div>
       </div>
 
       <div class="card chart-card">
@@ -215,6 +323,7 @@
                 <li>If heat pump swap is enabled, remaining heat demand becomes electric demand at the selected COP.</li>
                 <li>NPV discounts yearly net cashflows. Abatement cost annualizes CAPEX over the horizon.</li>
                 <li>PV lifecycle chart shows year-by-year kWh output; the amber dashed line marks when cumulative NPV turns positive.</li>
+                <li>CO₂ factors from Swiss LCA data (WWZ mix: 0.078 kgCO₂e/kWh; wood chips: 0.025 kgCO₂e/kWh). Adjustable via Expert settings.</li>
               </ul>
             </div>
           </details>
@@ -226,5 +335,18 @@
 
   </div>
   <script src="app.js"></script>
+  <script>
+    // Intro animation: fade out overlay, fade in app
+    window.addEventListener('DOMContentLoaded', () => {
+      const overlay = document.getElementById('introOverlay');
+      const app = document.getElementById('appShell');
+      setTimeout(() => {
+        overlay.classList.add('intro-fade-out');
+        app.style.transition = 'opacity 0.6s ease';
+        app.style.opacity = '1';
+        setTimeout(() => { overlay.style.display = 'none'; }, 700);
+      }, 2200);
+    });
+  </script>
 </body>
 </html>

@@ -1,18 +1,20 @@
 const DEFAULTS = {
   electricityUse: 41150,
-  heatUse: 120000,
+  heatUse: 189000,
   roofArea: 220,
   usefulHeatLoad: 20600,
   electricityMix: 'wwz',
   heatMethod: 'districtWood',
   newElectricityMix: 'wwz',
   newHeatMethod: 'districtWood',
-  electricityPrice: 0.28,
-  heatPrice: 0.12,
+  electricityPrice: 0.30,
+  heatPrice: 0.068,
   feedInTariff: 0.11,
   discountRate: 2.5,
   horizonYears: 25,
-  gridFactor: 0.019,
+  gridFactor: 0.078,
+  currentPvArea: 0,
+  currentStArea: 0,
   pvArea: 120,
   pvYield: 180,
   pvSelfShare: 0.4,
@@ -23,26 +25,36 @@ const DEFAULTS = {
   stDegradation: 0.5,
   pvCapexPerM2: 450,
   stCapexPerM2: 900,
+  pvCapexTotal: 54000,
+  stCapexTotal: 0,
   hpCapex: 85000,
   hpEnabled: false,
   cop: 3.5,
   omPct: 1,
+  co2Wwz: 0.078,
+  co2Swiss: 0.128,
+  co2Hydro: 0.006,
+  co2DistrictWood: 0.025,
+  co2Oil: 0.300,
+  co2Gas: 0.230,
+  co2Pellets: 0.030,
+  co2DistrictMix: 0.130,
 };
 
 const ELECTRICITY_MIXES = {
-  wwz: { label: 'WWZ WasserSonneStrom', factor: 0.019 },
-  swiss: { label: 'Swiss consumption mix', factor: 0.128 },
-  hydro: { label: 'Hydropower-heavy supply', factor: 0.006 },
-  custom: { label: 'Custom grid factor', factor: null },
+  wwz:    { label: 'WWZ WasserSonneStrom', factorId: 'co2Wwz' },
+  swiss:  { label: 'Swiss consumption mix', factorId: 'co2Swiss' },
+  hydro:  { label: 'Hydropower-heavy supply', factorId: 'co2Hydro' },
+  custom: { label: 'Custom grid factor', factorId: null },
 };
 
 const HEAT_METHODS = {
-  districtWood: { label: 'Wood-chip district heat', factor: 0.025 },
-  oil: { label: 'Heating oil', factor: 0.30 },
-  gas: { label: 'Natural gas', factor: 0.23 },
-  pellets: { label: 'Wood pellets', factor: 0.03 },
-  districtMix: { label: 'District heat mix', factor: 0.13 },
-  hp: { label: 'Heat pump (existing)', factor: null },
+  districtWood: { label: 'Wood-chip district heat', factorId: 'co2DistrictWood' },
+  oil:          { label: 'Heating oil', factorId: 'co2Oil' },
+  gas:          { label: 'Natural gas', factorId: 'co2Gas' },
+  pellets:      { label: 'Wood pellets', factorId: 'co2Pellets' },
+  districtMix:  { label: 'District heat mix', factorId: 'co2DistrictMix' },
+  hp:           { label: 'Heat pump (existing)', factorId: null },
 };
 
 const EMBODIED = { pvPerM2: 420, stPerM2: 90, hpUnit: 1200 };
@@ -56,14 +68,20 @@ const ids = [
   'electricityMix', 'heatMethod', 'newElectricityMix', 'newHeatMethod',
   'electricityPrice', 'heatPrice', 'feedInTariff',
   'discountRate', 'horizonYears', 'gridFactor',
+  'currentPvArea', 'currentStArea',
   'pvArea', 'pvYield', 'pvSelfShare',
   'stArea', 'stYield', 'stUtilization',
   'pvDegradation', 'stDegradation',
-  'pvCapexPerM2', 'stCapexPerM2', 'hpCapex',
-  'hpEnabled', 'cop', 'omPct',
+  'pvCapexPerM2', 'stCapexPerM2',
+  'pvCapexTotal', 'stCapexTotal',
+  'hpCapex', 'hpEnabled', 'cop', 'omPct',
+  'co2Wwz', 'co2Swiss', 'co2Hydro',
+  'co2DistrictWood', 'co2Oil', 'co2Gas', 'co2Pellets', 'co2DistrictMix',
 ];
 
 const rangeIds = {
+  currentPvArea: 'currentPvAreaValue',
+  currentStArea: 'currentStAreaValue',
   pvArea: 'pvAreaValue',
   pvYield: 'pvYieldValue',
   pvSelfShare: 'pvSelfShareValue',
@@ -98,7 +116,24 @@ function writeState(state) {
   syncRanges(state);
 }
 
+function updateCapexHints(pvArea, stArea, pvRate, stRate) {
+  const pvDefault = Math.round(pvArea * pvRate);
+  const stDefault = Math.round(stArea * stRate);
+
+  const pvHint = $('pvCapexHint');
+  const stHint = $('stCapexHint');
+  if (pvHint) pvHint.textContent = pvArea > 0 ? `${fmt(pvArea, 0)} m² × ${fmt(pvRate, 0)} CHF/m²` : 'No PV area selected';
+  if (stHint) stHint.textContent = stArea > 0 ? `${fmt(stArea, 0)} m² × ${fmt(stRate, 0)} CHF/m²` : 'No ST area selected';
+
+  const pvEl = $('pvCapexTotal');
+  const stEl = $('stCapexTotal');
+  if (pvEl && pvEl.dataset.auto !== 'false') pvEl.value = pvDefault;
+  if (stEl && stEl.dataset.auto !== 'false') stEl.value = stDefault;
+}
+
 function syncRanges(state) {
+  $(rangeIds.currentPvArea).textContent = fmt(state.currentPvArea, 0);
+  $(rangeIds.currentStArea).textContent = fmt(state.currentStArea, 0);
   $(rangeIds.pvArea).textContent = fmt(state.pvArea, 0);
   $(rangeIds.pvYield).textContent = fmt(state.pvYield, 0);
   $(rangeIds.pvSelfShare).textContent = pct(state.pvSelfShare * 100, 0);
@@ -107,28 +142,67 @@ function syncRanges(state) {
   $(rangeIds.stUtilization).textContent = pct(state.stUtilization * 100, 0);
   $(rangeIds.pvDegradation).textContent = `${fmt(state.pvDegradation, 1)}%`;
   $(rangeIds.stDegradation).textContent = `${fmt(state.stDegradation, 1)}%`;
-  $('roofWarning').classList.toggle('visible', state.pvArea + state.stArea > state.roofArea + 1e-9);
+
+  // Update slider maxes to roof area
+  ['pvArea', 'stArea', 'currentPvArea', 'currentStArea', 'rPvArea', 'rStArea'].forEach((id) => {
+    const el = $(id);
+    if (el) el.max = state.roofArea;
+  });
+
+  const newExceedsRoof = state.pvArea + state.stArea > state.roofArea + 1e-9;
+  const curExceedsRoof = state.currentPvArea + state.currentStArea > state.roofArea + 1e-9;
+  $('roofWarning').classList.toggle('visible', newExceedsRoof || curExceedsRoof);
+
+  // Update roof usage visual bars
+  if (state.roofArea > 0) {
+    const pvPct = Math.min((state.pvArea / state.roofArea) * 100, 100);
+    const stPct = Math.min((state.stArea / state.roofArea) * 100, 100 - pvPct);
+    const pvFill = $('pvRoofFill');
+    const stPvFill = $('stPvFill');
+    const stStFill = $('stStFill');
+    if (pvFill) pvFill.style.width = `${pvPct}%`;
+    if (stPvFill) stPvFill.style.width = `${pvPct}%`;
+    if (stStFill) stStFill.style.width = `${stPct}%`;
+    const totalPct = Math.round(pvPct + stPct);
+    const usageLabel = $('roofUsageLabel');
+    if (usageLabel) {
+      usageLabel.textContent = totalPct > 0 ? `${totalPct}% of roof used (${fmt(state.pvArea + state.stArea, 0)} / ${fmt(state.roofArea, 0)} m²)` : '';
+    }
+  }
+
   $('mixBadge').textContent = ELECTRICITY_MIXES[state.electricityMix].label;
   $('gridFactorField').style.display = state.electricityMix === 'custom' ? '' : 'none';
+
+  updateCapexHints(state.pvArea, state.stArea, state.pvCapexPerM2, state.stCapexPerM2);
 }
 
 function electricityFactor(state) {
-  return state.electricityMix === 'custom' ? state.gridFactor : ELECTRICITY_MIXES[state.electricityMix].factor;
+  if (state.electricityMix === 'custom') return state.gridFactor;
+  const factorId = ELECTRICITY_MIXES[state.electricityMix].factorId;
+  const el = factorId ? $(factorId) : null;
+  return el ? Number(el.value) : 0;
 }
 
 function heatFactor(state) {
   if (state.heatMethod === 'hp') return electricityFactor(state) / Math.max(state.cop, 1e-6);
-  return HEAT_METHODS[state.heatMethod].factor;
+  const factorId = HEAT_METHODS[state.heatMethod].factorId;
+  const el = factorId ? $(factorId) : null;
+  return el ? Number(el.value) : 0;
 }
 
 function newElectricityFactor(state) {
-  return state.newElectricityMix === 'custom' ? state.gridFactor : ELECTRICITY_MIXES[state.newElectricityMix].factor;
+  if (state.newElectricityMix === 'custom') return state.gridFactor;
+  const factorId = ELECTRICITY_MIXES[state.newElectricityMix].factorId;
+  const el = factorId ? $(factorId) : null;
+  return el ? Number(el.value) : 0;
 }
 
 function newHeatFactor(state) {
   if (state.hpEnabled) return newElectricityFactor(state) / Math.max(state.cop, 1e-6);
   if (state.newHeatMethod === 'hp') return newElectricityFactor(state) / Math.max(state.cop, 1e-6);
-  return HEAT_METHODS[state.newHeatMethod].factor;
+  const factorId = HEAT_METHODS[state.newHeatMethod].factorId;
+  const el = factorId ? $(factorId) : null;
+  return el ? Number(el.value) : 0;
 }
 
 function annualScenario(state, yearIndex = 0, overrides = {}) {
@@ -143,8 +217,12 @@ function annualScenario(state, yearIndex = 0, overrides = {}) {
   const pvArea = overrides.pvArea ?? state.pvArea;
   const stArea = overrides.stArea ?? state.stArea;
 
-  const baselineElectricity = state.electricityUse;
-  const baselineHeat = state.heatUse;
+  const curPvGen = state.currentPvArea * state.pvYield * pvFactor;
+  const curPvSelf = Math.min(curPvGen * state.pvSelfShare, state.electricityUse);
+  const curStHeat = Math.min(state.currentStArea * state.stYield * stFactor * state.stUtilization, state.usefulHeatLoad);
+
+  const baselineElectricity = Math.max(state.electricityUse - curPvSelf, 0);
+  const baselineHeat = Math.max(state.heatUse - curStHeat, 0);
   const baselineCO2 = baselineElectricity * gridEF + baselineHeat * heatEF;
   const baselineCost = baselineElectricity * state.electricityPrice + baselineHeat * state.heatPrice;
 
@@ -163,14 +241,15 @@ function annualScenario(state, yearIndex = 0, overrides = {}) {
   const electricityResidual = Math.max(netElectricDemand - pvSelf, 0);
   const heatResidual = state.hpEnabled ? 0 : heatAfterThermal;
 
-  // Scenario CO₂ is computed directly from residual demands × new factors.
-  // This captures PV/ST savings, heat-pump conversion, fuel switching, and grid decarbonisation in one number.
   const scenarioCO2 = electricityResidual * newGridEF + heatResidual * newHeatEF;
   const scenarioCost = electricityResidual * state.electricityPrice + heatResidual * state.heatPrice - pvExport * state.feedInTariff;
   const savings = baselineCost - scenarioCost;
 
-  const pvCapex = pvArea * state.pvCapexPerM2;
-  const stCapex = stArea * state.stCapexPerM2;
+  // Derive effective per-m² rates from total investment fields (scales correctly in optimizer)
+  const pvCapexRate = state.pvArea > 0 ? state.pvCapexTotal / state.pvArea : state.pvCapexPerM2;
+  const stCapexRate = state.stArea > 0 ? state.stCapexTotal / state.stArea : state.stCapexPerM2;
+  const pvCapex = pvArea * pvCapexRate;
+  const stCapex = stArea * stCapexRate;
   const hpCapex = state.hpEnabled ? state.hpCapex : 0;
   const capex = pvCapex + stCapex + hpCapex;
 
@@ -186,7 +265,6 @@ function annualScenario(state, yearIndex = 0, overrides = {}) {
     pvGeneration, pvSelf, pvExport,
     heatThermalUseful, heatAfterThermal, hpElectricity,
     electricityResidual, heatResidual,
-    avoidedST, avoidedHP, avoidedPV,
     scenarioCO2, scenarioCost, savings,
     capex, om, annualCashflow, annualAvoided,
     pvCapex, stCapex, hpCapex,
@@ -237,27 +315,29 @@ function renderStackedBarChart(el, state, scenario) {
   const pad = { top: 24, right: 30, bottom: 54, left: 68 };
   const innerW = width - pad.left - pad.right;
   const innerH = height - pad.top - pad.bottom;
-  const baseElectricity = scenario.baselineElectricity * scenario.gridEF / 1000;
+
+  const baseElec = scenario.baselineElectricity * scenario.gridEF / 1000;
   const baseHeat = scenario.baselineHeat * scenario.heatEF / 1000;
-  const scenarioElectricity = (scenario.electricityResidual * scenario.newGridEF) / 1000;
-  const scenarioHeat = (scenario.heatResidual * scenario.newHeatEF) / 1000;
-  const maxY = Math.max(baseElectricity + baseHeat, scenarioElectricity + scenarioHeat) * 1.18 || 1;
+  const scenElec = scenario.electricityResidual * scenario.newGridEF / 1000;
+  const scenHeat = scenario.heatResidual * scenario.newHeatEF / 1000;
+  const baseTotal = baseElec + baseHeat;
+  const scenTotal = scenElec + scenHeat;
+  const maxY = Math.max(baseTotal, scenTotal) * 1.18 || 1;
+
   const barW = 120;
   const x1 = pad.left + innerW * 0.32 - barW / 2;
   const x2 = pad.left + innerW * 0.72 - barW / 2;
-  const scaleY = (v) => innerH - (v / maxY) * innerH;
+
+  const toY = (v) => pad.top + (1 - v / maxY) * innerH;
+  const segH = (v) => (v / maxY) * innerH;
 
   const yTicks = axisTicks(maxY, 5);
   const tickMarks = yTicks.map((tick) => {
-    const y = pad.top + scaleY(tick);
+    const y = toY(tick);
     return `
       <line x1="${pad.left}" y1="${y}" x2="${width - pad.right}" y2="${y}" stroke="rgba(105,114,122,0.18)" />
       <text x="${pad.left - 10}" y="${y + 4}" text-anchor="end" font-size="11" fill="#67727a">${fmt(tick, 1)}</text>`;
   }).join('');
-
-  const baseElH = scaleY(baseElectricity);
-  const scenElH = scaleY(scenarioElectricity);
-  const scenHeatH = scaleY(scenarioElectricity + scenarioHeat);
 
   const svg = `
     <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Annual snapshot chart">
@@ -267,12 +347,15 @@ function renderStackedBarChart(el, state, scenario) {
       <line x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${pad.top + innerH}" stroke="rgba(23,33,38,0.38)" />
       <text x="${x1 + barW / 2}" y="${height - 18}" text-anchor="middle" font-size="12" fill="#516069">Baseline</text>
       <text x="${x2 + barW / 2}" y="${height - 18}" text-anchor="middle" font-size="12" fill="#516069">Scenario</text>
-      <rect x="${x1}" y="${pad.top + scaleY(baseElectricity + baseHeat)}" width="${barW}" height="${(baseHeat / maxY) * innerH}" rx="14" fill="#8da85f"></rect>
-      <rect x="${x1}" y="${pad.top}" width="${barW}" height="${(baseElectricity / maxY) * innerH}" rx="14" fill="#cddab0"></rect>
-      <rect x="${x2}" y="${pad.top + scenHeatH}" width="${barW}" height="${(scenarioHeat / maxY) * innerH}" rx="14" fill="#6a8b6f"></rect>
-      <rect x="${x2}" y="${pad.top + scenElH}" width="${barW}" height="${(scenarioElectricity / maxY) * innerH}" rx="14" fill="#dfe8cb"></rect>
-      <text x="${x1 + barW / 2}" y="${pad.top + scaleY(baseElectricity + baseHeat) - 8}" text-anchor="middle" font-size="12" font-weight="700" fill="#27413a">${fmt(baseElectricity + baseHeat, 1)}</text>
-      <text x="${x2 + barW / 2}" y="${pad.top + scenElH - 8}" text-anchor="middle" font-size="12" font-weight="700" fill="#27413a">${fmt(scenarioElectricity + scenarioHeat, 1)}</text>
+
+      <rect x="${x1}" y="${toY(baseHeat)}" width="${barW}" height="${segH(baseHeat)}" rx="10" fill="#8da85f"></rect>
+      <rect x="${x1}" y="${toY(baseTotal)}" width="${barW}" height="${segH(baseElec)}" rx="10" fill="#cddab0"></rect>
+      <text x="${x1 + barW / 2}" y="${toY(baseTotal) - 8}" text-anchor="middle" font-size="13" font-weight="700" fill="#27413a">${fmt(baseTotal, 2)} t</text>
+
+      <rect x="${x2}" y="${toY(scenHeat)}" width="${barW}" height="${segH(scenHeat)}" rx="10" fill="#6a8b6f"></rect>
+      <rect x="${x2}" y="${toY(scenTotal)}" width="${barW}" height="${Math.max(segH(scenElec), 3)}" rx="10" fill="#dfe8cb"></rect>
+      <text x="${x2 + barW / 2}" y="${toY(scenTotal) - 8}" text-anchor="middle" font-size="13" font-weight="700" fill="#27413a">${fmt(scenTotal, 2)} t</text>
+
       <text x="${pad.left - 10}" y="${pad.top - 8}" text-anchor="end" font-size="11" fill="#67727a">tCO₂/y</text>
       <rect x="${width - 212}" y="${pad.top + 6}" width="14" height="14" rx="4" fill="#cddab0"></rect>
       <text x="${width - 192}" y="${pad.top + 17}" font-size="12" fill="#516069">Electricity</text>
@@ -302,7 +385,6 @@ function renderPvLifecycleChart(el, state, lifecycle) {
     ? lifecycle.stGeneration.map((v, i) => `${i === 0 ? 'M' : 'L'} ${toX(i).toFixed(1)} ${toY(v).toFixed(1)}`).join(' ')
     : '';
 
-  // filled area under PV curve
   const pvFillPath = `${pvPath} L ${toX(n - 1).toFixed(1)} ${(pad.top + innerH).toFixed(1)} L ${pad.left} ${(pad.top + innerH).toFixed(1)} Z`;
 
   const yTicks = axisTicks(maxY, 5);
@@ -318,13 +400,11 @@ function renderPvLifecycleChart(el, state, lifecycle) {
     return `<text x="${toX(i)}" y="${height - 14}" text-anchor="middle" font-size="11" fill="#67727a">${yr}</text>`;
   }).join('');
 
-  // end-point annotation: show final output vs year-1
   const pvFirst = lifecycle.pvGeneration[0];
   const pvLast = lifecycle.pvGeneration[n - 1];
   const dropPct = pvFirst > 0 ? ((pvFirst - pvLast) / pvFirst) * 100 : 0;
   const totalPvKwh = lifecycle.pvGeneration.reduce((a, b) => a + b, 0);
 
-  // dot at last point
   const lastX = toX(n - 1);
   const lastY = toY(pvLast);
   const annotation = `
@@ -333,7 +413,6 @@ function renderPvLifecycleChart(el, state, lifecycle) {
     <text x="${lastX - 50}" y="${lastY - 20}" text-anchor="middle" font-size="11" fill="#e8f0e9">${fmt(pvLast, 0)} kWh</text>
     <text x="${lastX - 50}" y="${lastY - 8}" text-anchor="middle" font-size="10" fill="#a8c9ab">−${fmt(dropPct, 1)}% vs yr 1</text>`;
 
-  // payback year line (first year cumNPV turns positive)
   const pbYear = lifecycle.cumulativeNpv.findIndex((v) => v >= 0);
   let paybackLine = '';
   if (pbYear >= 0) {
@@ -431,10 +510,6 @@ function renderLineChart(el, series, labels, options = {}) {
       <rect x="0" y="0" width="12" height="12" rx="3" fill="${s.color ?? palette[i % palette.length]}"></rect>
       <text x="18" y="10" font-size="12" fill="#516069">${s.label}</text>
     </g>`).join('');
-
-  if (minValue < 0) {
-    // zero line
-  }
 
   const svg = `
     <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Lifecycle chart">
@@ -556,8 +631,8 @@ function renderKpis(state, scenario, lifecycle) {
   const n = lifecycle.years.length;
   const annualized = scenario.capex * annuityFactor(state.discountRate / 100, Math.max(1, Math.round(state.horizonYears)));
   const abatement = scenario.annualAvoided > 0 ? ((annualized + scenario.om - scenario.savings) / (scenario.annualAvoided / 1000)) : NaN;
-  const lcoe = state.pvArea > 0
-    ? ((state.pvCapexPerM2 * state.pvArea) * annuityFactor(state.discountRate / 100, Math.max(1, n)) + (state.pvCapexPerM2 * state.pvArea) * (state.omPct / 100)) / Math.max(scenario.pvGeneration, 1e-6)
+  const lcoe = (state.pvArea > 0 && state.pvCapexTotal > 0)
+    ? (state.pvCapexTotal * annuityFactor(state.discountRate / 100, Math.max(1, n)) + state.pvCapexTotal * (state.omPct / 100)) / Math.max(scenario.pvGeneration, 1e-6)
     : NaN;
   const selfSuff = scenario.baselineElectricity > 0 ? (scenario.pvSelf / scenario.baselineElectricity) * 100 : 0;
   const embodied = state.pvArea * EMBODIED.pvPerM2 + state.stArea * EMBODIED.stPerM2 + (state.hpEnabled ? EMBODIED.hpUnit : 0);
@@ -590,10 +665,22 @@ function refresh() {
   renderOptimizerChart($('optimizerChart'), state);
 }
 
+function syncResultSliders(state) {
+  const map = [
+    ['rPvArea', 'pvArea', (v) => fmt(v, 0), 'rPvAreaValue'],
+    ['rStArea', 'stArea', (v) => fmt(v, 0), 'rStAreaValue'],
+    ['rPvSelfShare', 'pvSelfShare', (v) => pct(v * 100, 0), 'rPvSelfShareValue'],
+  ];
+  map.forEach(([rid, key, format, rvid]) => {
+    const el = $(rid);
+    if (el) { el.value = state[key]; $(rvid).textContent = format(state[key]); }
+  });
+}
+
 function calculate() {
-  // sync range labels before calculating so warnings are correct
   const state = readState();
   syncRanges(state);
+  syncResultSliders(state);
   refresh();
   document.querySelector('.shell').classList.replace('show-inputs', 'show-results');
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -606,21 +693,36 @@ function showInputs() {
 
 function resetToDefaults() {
   writeState(DEFAULTS);
+  const pvEl = $('pvCapexTotal');
+  const stEl = $('stCapexTotal');
+  if (pvEl) pvEl.dataset.auto = 'true';
+  if (stEl) stEl.dataset.auto = 'true';
+  updateCapexHints(DEFAULTS.pvArea, DEFAULTS.stArea, DEFAULTS.pvCapexPerM2, DEFAULTS.stCapexPerM2);
   syncRangeLabels();
   showInputs();
 }
 
 function loadRathausBaseline() {
-  writeState({
+  const baseline = {
     ...DEFAULTS,
     electricityUse: 41150,
-    heatUse: 120000,
+    heatUse: 189000,
     electricityMix: 'wwz',
     heatMethod: 'districtWood',
+    electricityPrice: 0.30,
+    heatPrice: 0.068,
     pvArea: 0,
     stArea: 0,
+    pvCapexTotal: 0,
+    stCapexTotal: 0,
     hpEnabled: false,
-  });
+  };
+  writeState(baseline);
+  const pvEl = $('pvCapexTotal');
+  const stEl = $('stCapexTotal');
+  if (pvEl) pvEl.dataset.auto = 'true';
+  if (stEl) stEl.dataset.auto = 'true';
+  updateCapexHints(0, 0, DEFAULTS.pvCapexPerM2, DEFAULTS.stCapexPerM2);
   syncRangeLabels();
   showInputs();
 }
@@ -663,24 +765,160 @@ function syncRangeLabels() {
   syncRanges(state);
 }
 
+// Enforce roof area constraint: when pvArea or stArea slider moves,
+// clamp the other so their sum never exceeds roofArea.
+function applyRoofConstraint(movedId) {
+  const roofArea = Number($('roofArea').value);
+  const pvEl = $('pvArea');
+  const stEl = $('stArea');
+  const rPvEl = $('rPvArea');
+  const rStEl = $('rStArea');
+
+  if (movedId === 'pvArea' || movedId === 'rPvArea') {
+    const pv = Math.min(Number(pvEl.value), roofArea);
+    pvEl.value = pv;
+    if (rPvEl) rPvEl.value = pv;
+    const maxSt = Math.max(0, roofArea - pv);
+    if (Number(stEl.value) > maxSt) {
+      stEl.value = maxSt;
+      if (rStEl) rStEl.value = maxSt;
+    }
+  } else {
+    const st = Math.min(Number(stEl.value), roofArea);
+    stEl.value = st;
+    if (rStEl) rStEl.value = st;
+    const maxPv = Math.max(0, roofArea - st);
+    if (Number(pvEl.value) > maxPv) {
+      pvEl.value = maxPv;
+      if (rPvEl) rPvEl.value = maxPv;
+    }
+  }
+}
+
 function bindEvents() {
-  // range sliders update their labels live (no full recalculation)
   Object.keys(rangeIds).forEach((id) => {
     const el = $(id);
-    if (el) el.addEventListener('input', syncRangeLabels);
+    if (!el) return;
+    el.addEventListener('input', () => {
+      if (id === 'pvArea' || id === 'stArea') {
+        applyRoofConstraint(id);
+        updateCapexHints(
+          Number($('pvArea').value),
+          Number($('stArea').value),
+          Number($('pvCapexPerM2').value) || DEFAULTS.pvCapexPerM2,
+          Number($('stCapexPerM2').value) || DEFAULTS.stCapexPerM2,
+        );
+      }
+      syncRangeLabels();
+    });
   });
-  // grid factor field visibility when mix changes
+
   $('electricityMix').addEventListener('change', syncRangeLabels);
+
+  // Expert panel rates affect CAPEX hints
+  ['pvCapexPerM2', 'stCapexPerM2'].forEach((id) => {
+    const el = $(id);
+    if (el) {
+      el.addEventListener('input', () => {
+        updateCapexHints(
+          Number($('pvArea').value),
+          Number($('stArea').value),
+          Number($('pvCapexPerM2').value) || DEFAULTS.pvCapexPerM2,
+          Number($('stCapexPerM2').value) || DEFAULTS.stCapexPerM2,
+        );
+      });
+    }
+  });
+
+  // Mark CAPEX fields as manually overridden when user edits them
+  const pvCapexEl = $('pvCapexTotal');
+  const stCapexEl = $('stCapexTotal');
+  if (pvCapexEl) pvCapexEl.addEventListener('input', () => { pvCapexEl.dataset.auto = 'false'; });
+  if (stCapexEl) stCapexEl.addEventListener('input', () => { stCapexEl.dataset.auto = 'false'; });
+
+  // Reset CAPEX to area-based default
+  const pvResetBtn = $('pvCapexResetBtn');
+  if (pvResetBtn) {
+    pvResetBtn.addEventListener('click', () => {
+      const pvEl = $('pvCapexTotal');
+      if (pvEl) { pvEl.dataset.auto = 'true'; }
+      updateCapexHints(
+        Number($('pvArea').value),
+        Number($('stArea').value),
+        Number($('pvCapexPerM2').value) || DEFAULTS.pvCapexPerM2,
+        Number($('stCapexPerM2').value) || DEFAULTS.stCapexPerM2,
+      );
+    });
+  }
+  const stResetBtn = $('stCapexResetBtn');
+  if (stResetBtn) {
+    stResetBtn.addEventListener('click', () => {
+      const stEl = $('stCapexTotal');
+      if (stEl) { stEl.dataset.auto = 'true'; }
+      updateCapexHints(
+        Number($('pvArea').value),
+        Number($('stArea').value),
+        Number($('pvCapexPerM2').value) || DEFAULTS.pvCapexPerM2,
+        Number($('stCapexPerM2').value) || DEFAULTS.stCapexPerM2,
+      );
+    });
+  }
+
+  // HP CAPEX estimate from heat demand
+  const hpEstBtn = $('hpCapexEstBtn');
+  if (hpEstBtn) {
+    hpEstBtn.addEventListener('click', () => {
+      const heatUse = Number($('heatUse').value) || DEFAULTS.heatUse;
+      const estimated = Math.round(heatUse / 2000 * 900 / 1000) * 1000;
+      $('hpCapex').value = estimated;
+      const hint = $('hpCapexHint');
+      if (hint) hint.textContent = `${fmt(heatUse, 0)} kWh ÷ 2000 h × 900 CHF/kW_th`;
+    });
+  }
 
   $('calculateBtn').addEventListener('click', calculate);
   $('backBtn').addEventListener('click', showInputs);
   $('resetBtn').addEventListener('click', resetToDefaults);
   $('rathausBtn').addEventListener('click', loadRathausBaseline);
   $('csvBtn').addEventListener('click', exportCsv);
+
+  // Results quick-adjust sliders with roof constraint
+  [
+    ['rPvArea', 'pvArea', (v) => fmt(v, 0), 'rPvAreaValue'],
+    ['rStArea', 'stArea', (v) => fmt(v, 0), 'rStAreaValue'],
+    ['rPvSelfShare', 'pvSelfShare', (v) => pct(v * 100, 0), 'rPvSelfShareValue'],
+  ].forEach(([rid, iid, format, rvid]) => {
+    const el = $(rid);
+    if (!el) return;
+    el.addEventListener('input', () => {
+      $(iid).value = el.value;
+      if (rid === 'rPvArea' || rid === 'rStArea') {
+        applyRoofConstraint(rid);
+        // Sync display values after constraint
+        $(rvid).textContent = format(Number($(iid).value));
+        el.value = $(iid).value;
+        // Also update the other result slider display
+        if (rid === 'rPvArea') {
+          $('rStAreaValue').textContent = fmt(Number($('stArea').value), 0);
+          $('rStArea').value = $('stArea').value;
+        } else {
+          $('rPvAreaValue').textContent = fmt(Number($('pvArea').value), 0);
+          $('rPvArea').value = $('pvArea').value;
+        }
+      } else {
+        $(rvid).textContent = format(Number(el.value));
+      }
+      refresh();
+    });
+  });
 }
 
 function init() {
   writeState(DEFAULTS);
+  const pvEl = $('pvCapexTotal');
+  const stEl = $('stCapexTotal');
+  if (pvEl) pvEl.dataset.auto = 'true';
+  if (stEl) stEl.dataset.auto = 'true';
   bindEvents();
   syncRangeLabels();
 }
