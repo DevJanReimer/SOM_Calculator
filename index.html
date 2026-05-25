@@ -336,6 +336,13 @@
   </div>
   <script src="app.js"></script>
   <script>
+    // Cursor glow: update CSS custom properties with mouse position
+    document.addEventListener('mousemove', (e) => {
+      document.body.style.setProperty('--cx', e.clientX + 'px');
+      document.body.style.setProperty('--cy', e.clientY + 'px');
+    });
+  </script>
+  <script>
     // Intro animation: fade out overlay, fade in app
     window.addEventListener('DOMContentLoaded', () => {
       const overlay = document.getElementById('introOverlay');

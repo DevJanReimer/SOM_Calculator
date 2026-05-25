@@ -28,6 +28,21 @@ body {
   line-height: 1.45;
 }
 
+/* Cursor glow — subtle green radial that follows the mouse */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    600px circle at var(--cx, 50%) var(--cy, 50%),
+    rgba(60, 91, 66, 0.07),
+    transparent 70%
+  );
+  transition: background 0.08s ease;
+}
+
 body::before {
   content: "";
   position: fixed;
