@@ -1,18 +1,18 @@
 :root {
-  --bg: #f4efe6;
-  --panel: rgba(255, 255, 255, 0.86);
+  --bg: #f2ede3;
+  --panel: rgba(255, 255, 255, 0.88);
   --panel-strong: #ffffff;
-  --ink: #172126;
-  --muted: #66727a;
-  --line: #d9d1c4;
-  --moss: #3c5b42;
-  --moss-2: #597963;
-  --pine: #27413a;
-  --sand: #ede4d3;
+  --ink: #0e1f18;
+  --muted: #5a6a62;
+  --line: #d5cdbf;
+  --moss: #1a3d2b;
+  --moss-2: #2d6046;
+  --pine: #1a3d2b;
+  --sand: #e8e0d0;
   --amber: #b36b2b;
-  --good: #2f7d42;
+  --good: #1a5c32;
   --warn: #b75d22;
-  --shadow: 0 18px 50px rgba(19, 31, 26, 0.08);
+  --shadow: 0 18px 50px rgba(10, 26, 18, 0.10);
   --radius: 20px;
 }
 
@@ -21,9 +21,9 @@ html, body { margin: 0; min-height: 100%; }
 body {
   color: var(--ink);
   background:
-    radial-gradient(circle at top left, rgba(60, 91, 66, 0.12), transparent 32%),
-    radial-gradient(circle at top right, rgba(179, 107, 43, 0.12), transparent 28%),
-    linear-gradient(180deg, #fbf9f4 0%, #f4efe6 44%, #efe8da 100%);
+    radial-gradient(circle at top left, rgba(26, 61, 43, 0.10), transparent 32%),
+    radial-gradient(circle at top right, rgba(179, 107, 43, 0.09), transparent 28%),
+    linear-gradient(180deg, #f8f5ee 0%, #f2ede3 44%, #ece4d6 100%);
   font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
   line-height: 1.45;
 }
@@ -43,8 +43,8 @@ body {
 .bg-trees {
   width: 100%;
   height: auto;
-  color: #3c5b42;
-  opacity: 0.045;
+  color: #1a3d2b;
+  opacity: 0.04;
 }
 
 /* Five sway variants — different speed, amplitude, and phase offset */
@@ -103,7 +103,7 @@ body::before {
   width: 260px;
   height: 260px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(60, 91, 66, 0.16), transparent 70%);
+  background: radial-gradient(circle, rgba(26, 61, 43, 0.13), transparent 70%);
   pointer-events: none;
 }
 
@@ -113,9 +113,9 @@ body::before {
   gap: 8px;
   padding: 7px 11px;
   border-radius: 999px;
-  background: rgba(60, 91, 66, 0.08);
+  background: rgba(26, 61, 43, 0.07);
   color: var(--moss);
-  border: 1px solid rgba(60, 91, 66, 0.16);
+  border: 1px solid rgba(26, 61, 43, 0.18);
   font-size: 12px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -132,7 +132,7 @@ h1 { font-size: clamp(34px, 4vw, 54px); line-height: 1.02; margin-top: 14px; }
 .lede {
   margin: 14px 0 0;
   max-width: 72ch;
-  color: #324047;
+  color: #233830;
   font-size: 15px;
 }
 
@@ -364,7 +364,7 @@ input[type="number"]:focus, select:focus {
 
 input[type="range"] {
   width: 100%;
-  accent-color: var(--moss);
+  accent-color: #1a3d2b;
 }
 
 .range-row {
@@ -418,8 +418,8 @@ button {
 }
 
 button:hover { transform: translateY(-1px); border-color: rgba(60, 91, 66, 0.35); background: #fbfaf7; }
-button.primary { background: linear-gradient(180deg, #3d5b43, #2d4733); color: #fff; border-color: transparent; }
-button.primary:hover { background: linear-gradient(180deg, #46694c, #2d4733); }
+button.primary { background: linear-gradient(180deg, #235235, #1a3d2b); color: #fff; border-color: transparent; }
+button.primary:hover { background: linear-gradient(180deg, #2b6340, #1a3d2b); }
 
 .warnings {
   margin-top: 12px;
@@ -566,131 +566,119 @@ details summary::-webkit-details-marker { display: none; }
 .details-body ul { margin: 8px 0 0 20px; padding: 0; }
 .details-body li { margin: 4px 0; }
 
-/* ── Intro overlay ────────────────────────────────────────────── */
+/* ── Intro overlay ─────────────────────────────────────────────── */
 .intro-overlay {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: linear-gradient(160deg, #1e3a28 0%, #2d5438 40%, #3c6b44 70%, #4a7a52 100%);
+  background: #1a3d2b;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
 }
 
+/* Subtle radial vignette on the dark green */
+.intro-overlay::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 60%, rgba(42,90,60,0.55), transparent 70%);
+  pointer-events: none;
+}
+
 .intro-overlay.intro-fade-out {
-  animation: introFadeOut 0.7s ease forwards;
+  animation: introFadeOut 0.65s cubic-bezier(0.4,0,1,1) forwards;
 }
 
 @keyframes introFadeOut {
-  to { opacity: 0; transform: scale(1.03); }
+  to { opacity: 0; }
 }
 
+/* ── Intro scene layout ─────────────────────────────────────────── */
 .intro-scene {
   position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0;
 }
 
-.intro-sun {
-  width: 70px;
-  height: 70px;
-  border-radius: 50%;
-  background: radial-gradient(circle, #ffe066 30%, #ffb830 70%, rgba(255,184,48,0) 100%);
-  animation: sunRise 1.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+/* ── Logo mark ──────────────────────────────────────────────────── */
+.intro-mark {
+  width: min(120px, 22vw);
+  height: auto;
+  animation: markIn 0.9s cubic-bezier(0.22,1,0.36,1) forwards;
   opacity: 0;
-  position: absolute;
-  top: -40px;
-  left: 50%;
-  transform: translateX(-50%) translateY(60px);
+  transform: translateY(14px) scale(0.88);
 }
 
-@keyframes sunRise {
-  0%   { opacity: 0; transform: translateX(-50%) translateY(60px) scale(0.5); }
-  60%  { opacity: 1; }
-  100% { opacity: 1; transform: translateX(-50%) translateY(0px) scale(1); }
+@keyframes markIn {
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-.intro-rays {
-  position: absolute;
-  top: -36px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 70px;
-  height: 70px;
-  animation: raysAppear 0.6s 0.9s ease forwards;
+/* ── Wordmark ───────────────────────────────────────────────────── */
+.intro-wordmark {
+  margin-top: 22px;
+  text-align: center;
+}
+
+.intro-brand-top {
+  display: block;
+  font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
+  font-size: clamp(13px, 2.2vw, 17px);
+  font-weight: 500;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(200, 235, 210, 0.72);
+  animation: wordIn 0.7s 0.35s cubic-bezier(0.22,1,0.36,1) forwards;
   opacity: 0;
+  transform: translateY(10px);
 }
 
-@keyframes raysAppear {
-  to { opacity: 1; }
-}
-
-.ray {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 2px;
-  height: 28px;
-  background: linear-gradient(to bottom, rgba(255,224,102,0.85), rgba(255,224,102,0));
-  transform-origin: 50% 0%;
-  border-radius: 2px;
-}
-.ray:nth-child(1) { transform: translateX(-50%) rotate(0deg) translateY(-42px); }
-.ray:nth-child(2) { transform: translateX(-50%) rotate(60deg) translateY(-42px); }
-.ray:nth-child(3) { transform: translateX(-50%) rotate(120deg) translateY(-42px); }
-.ray:nth-child(4) { transform: translateX(-50%) rotate(180deg) translateY(-42px); }
-.ray:nth-child(5) { transform: translateX(-50%) rotate(240deg) translateY(-42px); }
-.ray:nth-child(6) { transform: translateX(-50%) rotate(300deg) translateY(-42px); }
-
-.intro-trees {
-  animation: treesRise 1.4s 0.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+.intro-brand-name {
+  display: block;
+  font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
+  font-size: clamp(32px, 6vw, 58px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #ffffff;
+  line-height: 1.0;
+  margin-top: 6px;
+  animation: wordIn 0.7s 0.55s cubic-bezier(0.22,1,0.36,1) forwards;
   opacity: 0;
-  transform: translateY(40px);
+  transform: translateY(12px);
 }
 
-@keyframes treesRise {
+@keyframes wordIn {
   to { opacity: 1; transform: translateY(0); }
 }
 
-.tree-svg {
-  width: min(420px, 90vw);
-  height: auto;
-  display: block;
-  filter: drop-shadow(0 8px 24px rgba(0,0,0,0.28));
+/* ── Divider ────────────────────────────────────────────────────── */
+.intro-rule {
+  width: 0;
+  height: 1.5px;
+  background: rgba(200,235,210,0.35);
+  margin: 18px auto 0;
+  animation: ruleExpand 0.6s 0.9s ease forwards;
 }
 
-.intro-title {
-  font-family: Georgia, "Iowan Old Style", serif;
-  font-size: clamp(26px, 5vw, 42px);
-  font-weight: 700;
-  color: #e8f5ea;
-  text-align: center;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
-  margin-top: 18px;
-  animation: titleFade 0.8s 0.7s ease forwards;
+@keyframes ruleExpand {
+  to { width: min(220px, 50vw); }
+}
+
+/* ── Sub-caption ────────────────────────────────────────────────── */
+.intro-caption {
+  margin-top: 14px;
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(190, 230, 205, 0.5);
+  animation: wordIn 0.6s 1.05s ease forwards;
   opacity: 0;
-}
-
-.intro-title span {
-  color: #a8e6b4;
-}
-
-@keyframes titleFade {
-  to { opacity: 1; }
-}
-
-.intro-sub {
-  color: rgba(200, 235, 205, 0.72);
-  font-size: 14px;
-  text-align: center;
-  margin-top: 10px;
-  animation: titleFade 0.8s 1.1s ease forwards;
-  opacity: 0;
-  letter-spacing: 0.04em;
+  transform: translateY(6px);
 }
 
 /* ── Expert panel ─────────────────────────────────────────────── */

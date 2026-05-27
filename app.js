@@ -31,14 +31,14 @@ const DEFAULTS = {
   hpEnabled: false,
   cop: 3.5,
   omPct: 1,
-  co2Wwz: 0.078,
-  co2Swiss: 0.128,
-  co2Hydro: 0.006,
-  co2DistrictWood: 0.025,
-  co2Oil: 0.300,
-  co2Gas: 0.230,
-  co2Pellets: 0.030,
-  co2DistrictMix: 0.130,
+  co2Wwz: 0.078,        // WWZ supplier-specific (from Rathaus Excel)
+  co2Swiss: 0.125,      // KBOB 45.020 CH-Verbrauchermix
+  co2Hydro: 0.012,      // KBOB 45.016 Wasserkraft
+  co2DistrictWood: 0.025, // KBOB 42.003 Heizzentrale Holz ≈ 0.0245
+  co2Oil: 0.324,        // KBOB 41.001 Heizöl EL
+  co2Gas: 0.230,        // KBOB 41.002 Erdgas
+  co2Pellets: 0.028,    // KBOB 41.008 Pellets
+  co2DistrictMix: 0.066, // KBOB 42.016 Fernwärme Durchschnitt Netze CH
 };
 
 const ELECTRICITY_MIXES = {

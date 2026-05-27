@@ -85,36 +85,27 @@
   <!-- ── INTRO ANIMATION ─────────────────────────────────────────── -->
   <div id="introOverlay" class="intro-overlay" aria-hidden="true">
     <div class="intro-scene">
-      <div class="intro-trees">
-        <svg class="tree-svg" viewBox="0 0 420 220" xmlns="http://www.w3.org/2000/svg">
-          <!-- Back trees -->
-          <polygon points="70,180 90,100 110,180" fill="rgba(45,71,51,0.45)"/>
-          <rect x="87" y="175" width="6" height="20" fill="rgba(45,71,51,0.35)"/>
-          <polygon points="310,180 335,90 360,180" fill="rgba(45,71,51,0.45)"/>
-          <rect x="331" y="175" width="7" height="20" fill="rgba(45,71,51,0.35)"/>
-          <!-- Mid trees -->
-          <polygon points="140,185 170,80 200,185" fill="#3c5b42"/>
-          <polygon points="155,160 170,100 185,160" fill="#4a7053"/>
-          <rect x="167" y="180" width="7" height="26" fill="#2d4733"/>
-          <polygon points="220,185 255,75 290,185" fill="#3c5b42"/>
-          <polygon points="238,158 255,98 272,158" fill="#4a7053"/>
-          <rect x="252" y="180" width="8" height="26" fill="#2d4733"/>
-          <!-- Front trees -->
-          <polygon points="30,200 58,110 86,200" fill="#4a7053"/>
-          <rect x="55" y="195" width="7" height="20" fill="#2d4733"/>
-          <polygon points="334,200 362,108 390,200" fill="#4a7053"/>
-          <rect x="359" y="195" width="7" height="20" fill="#2d4733"/>
-          <!-- Ground -->
-          <ellipse cx="210" cy="205" rx="190" ry="14" fill="rgba(60,91,66,0.18)"/>
-        </svg>
+
+      <!-- Logo mark: leaf + mountain, matching the reference brand -->
+      <svg class="intro-mark" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" fill="none">
+        <!-- Outer ring -->
+        <circle cx="50" cy="50" r="46" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
+        <!-- Mountain peaks -->
+        <path d="M22 72 L44 36 L55 54 L66 32 L80 72 Z" fill="white" opacity="0.92"/>
+        <!-- Leaf blade overlapping the mountain from left -->
+        <path d="M18 74 C14 52 22 26 46 18 C52 34 50 58 30 70 Z" fill="white"/>
+        <!-- Leaf midrib -->
+        <path d="M46 18 C42 36 34 56 30 70" stroke="#1a3d2b" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>
+
+      <div class="intro-wordmark">
+        <span class="intro-brand-top">Carbon Reduction</span>
+        <span class="intro-brand-name">Oberägeri</span>
       </div>
-      <div class="intro-sun"></div>
-      <div class="intro-rays">
-        <div class="ray"></div><div class="ray"></div><div class="ray"></div>
-        <div class="ray"></div><div class="ray"></div><div class="ray"></div>
-      </div>
-      <div class="intro-title">Carbon Reduction<br><span>Oberägeri</span></div>
-      <div class="intro-sub">Loading calculator…</div>
+
+      <div class="intro-rule"></div>
+      <div class="intro-caption">University of Zurich · Municipal Calculator</div>
+
     </div>
   </div>
 
@@ -287,17 +278,17 @@
               <div class="expert-section-label">Electricity emission factors (kgCO₂e/kWh)</div>
               <div class="grid-3" style="margin-bottom:14px">
                 <div class="field"><label for="co2Wwz">WWZ WasserSonneStrom</label><input id="co2Wwz" type="number" value="0.078" min="0" step="0.001"></div>
-                <div class="field"><label for="co2Swiss">Swiss consumption mix</label><input id="co2Swiss" type="number" value="0.128" min="0" step="0.001"></div>
-                <div class="field"><label for="co2Hydro">Hydropower-heavy supply</label><input id="co2Hydro" type="number" value="0.006" min="0" step="0.001"></div>
+                <div class="field"><label for="co2Swiss">Swiss consumption mix</label><input id="co2Swiss" type="number" value="0.125" min="0" step="0.001"></div>
+                <div class="field"><label for="co2Hydro">Hydropower-heavy supply</label><input id="co2Hydro" type="number" value="0.012" min="0" step="0.001"></div>
               </div>
 
               <div class="expert-section-label">Heat emission factors (kgCO₂e/kWh)</div>
               <div class="grid-3" style="margin-bottom:14px">
                 <div class="field"><label for="co2DistrictWood">Wood-chip district heat</label><input id="co2DistrictWood" type="number" value="0.025" min="0" step="0.001"></div>
-                <div class="field"><label for="co2Oil">Heating oil</label><input id="co2Oil" type="number" value="0.300" min="0" step="0.001"></div>
+                <div class="field"><label for="co2Oil">Heating oil</label><input id="co2Oil" type="number" value="0.324" min="0" step="0.001"></div>
                 <div class="field"><label for="co2Gas">Natural gas</label><input id="co2Gas" type="number" value="0.230" min="0" step="0.001"></div>
-                <div class="field"><label for="co2Pellets">Wood pellets</label><input id="co2Pellets" type="number" value="0.030" min="0" step="0.001"></div>
-                <div class="field"><label for="co2DistrictMix">District heat mix</label><input id="co2DistrictMix" type="number" value="0.130" min="0" step="0.001"></div>
+                <div class="field"><label for="co2Pellets">Wood pellets</label><input id="co2Pellets" type="number" value="0.028" min="0" step="0.001"></div>
+                <div class="field"><label for="co2DistrictMix">District heat mix (CH avg)</label><input id="co2DistrictMix" type="number" value="0.066" min="0" step="0.001"></div>
               </div>
 
               <div class="expert-section-label">Installation cost rates (used for auto-defaults)</div>
