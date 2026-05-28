@@ -2,7 +2,7 @@ const DEFAULTS = {
   electricityUse: 41150,
   heatUse: 189000,
   roofArea: 303,
-  usefulHeatLoad: 20600,
+  stHeatPct: 11,
   electricityMix: 'wwz',
   heatMethod: 'districtWood',
   newElectricityMix: 'wwz',
@@ -64,7 +64,7 @@ const fmt = (n, d = 0) => Number.isFinite(n) ? n.toLocaleString('de-CH', { maxim
 const pct = (n, d = 0) => Number.isFinite(n) ? `${fmt(n, d)}%` : '—';
 
 const ids = [
-  'electricityUse', 'heatUse', 'roofArea', 'usefulHeatLoad',
+  'electricityUse', 'heatUse', 'roofArea', 'stHeatPct',
   'electricityMix', 'heatMethod', 'newElectricityMix', 'newHeatMethod',
   'electricityPrice', 'heatPrice', 'feedInTariff',
   'discountRate', 'horizonYears', 'gridFactor',
@@ -219,9 +219,11 @@ function annualScenario(state, yearIndex = 0, overrides = {}) {
   const pvArea = overrides.pvArea ?? state.pvArea;
   const stArea = overrides.stArea ?? state.stArea;
 
+  const stAddressableHeat = state.heatUse * (state.stHeatPct / 100);
+
   const curPvGen = state.currentPvArea * state.pvYield * pvFactor;
   const curPvSelf = Math.min(curPvGen * state.pvSelfShare, state.electricityUse);
-  const curStHeat = Math.min(state.currentStArea * state.stYield * stFactor * state.stUtilization, state.usefulHeatLoad);
+  const curStHeat = Math.min(state.currentStArea * state.stYield * stFactor * state.stUtilization, stAddressableHeat);
 
   const baselineElectricity = Math.max(state.electricityUse - curPvSelf, 0);
   const baselineHeat = Math.max(state.heatUse - curStHeat, 0);
@@ -232,7 +234,7 @@ function annualScenario(state, yearIndex = 0, overrides = {}) {
   const pvPotentialSelf = pvGeneration * state.pvSelfShare;
 
   const heatThermalRaw = stArea * state.stYield * stFactor * state.stUtilization;
-  const heatThermalUseful = Math.min(heatThermalRaw, state.usefulHeatLoad);
+  const heatThermalUseful = Math.min(heatThermalRaw, stAddressableHeat);
   const heatAfterThermal = Math.max(baselineHeat - heatThermalUseful, 0);
 
   const hpElectricity = state.hpEnabled ? heatAfterThermal / Math.max(state.cop, 1e-6) : 0;
@@ -534,7 +536,7 @@ function renderOptimizerChart(el, state) {
   let bestCost = { x: 0, value: Infinity };
   let bestCo2 = { x: 0, value: -Infinity };
 
-  const usefulHeat = Math.max(state.usefulHeatLoad, 1);
+  const usefulHeat = Math.max(state.heatUse * (state.stHeatPct / 100), 1);
   const totalElec = Math.max(state.electricityUse, 1);
 
   for (let i = 0; i <= 48; i += 1) {
@@ -546,7 +548,7 @@ function renderOptimizerChart(el, state) {
     const abatement = s.annualAvoided > 0 ? ((annualizedCapex + s.om - s.savings) / (s.annualAvoided / 1000)) : Infinity;
     // pvCoverage: share of total electricity demand covered by PV self-consumption
     const pvCoverage = s.pvSelf / totalElec;
-    // stCoverage: share of addressable heat demand (usefulHeatLoad) covered by ST
+    // stCoverage: share of addressable heat demand (stHeatPct % of heatUse) covered by ST
     const stCoverage = Math.min(s.heatThermalUseful / usefulHeat, 1);
     points.push({
       x, avoided: s.annualAvoided / 1000, cost: Number.isFinite(abatement) ? abatement : null,
