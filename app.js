@@ -629,119 +629,6 @@ function renderOptimizerChart(el, state) {
   $('optimizerCo2Badge').textContent = `max CO₂ = ${Math.round(bestCo2.x * 100)}% PV / ${fmt(bestCo2.value / 1000, 2)} t/y`;
 }
 
-function renderInvestmentChart(el, state, scenario, lifecycle) {
-  const width = 860;
-  const height = 420;
-  const pad = { top: 32, right: 80, bottom: 54, left: 72 };
-  const innerW = width - pad.left - pad.right;
-  const innerH = height - pad.top - pad.bottom;
-
-  const pvC = scenario.pvCapex;
-  const stC = scenario.stCapex;
-  const hpC = scenario.hpCapex;
-  const totalCapex = pvC + stC + hpC;
-
-  // Cumulative undiscounted savings over time (for payback clarity)
-  const horizon = lifecycle.years.length;
-  const cumSavings = [];
-  let running = 0;
-  for (let y = 0; y < horizon; y++) {
-    const s = annualScenario(state, y);
-    running += s.savings - s.om;
-    cumSavings.push(running);
-  }
-
-  const maxVal = Math.max(totalCapex, ...cumSavings, 1);
-  const minVal = Math.min(0, ...cumSavings);
-  const span = Math.max(maxVal - minVal, 1);
-
-  const toY = (v) => pad.top + (1 - (v - minVal) / span) * innerH;
-
-  // Stacked CAPEX bar (left side)
-  const barX = pad.left + 20;
-  const barW = 54;
-  const pvH = (pvC / Math.max(totalCapex, 1)) * (totalCapex / span) * innerH;
-  const stH = (stC / Math.max(totalCapex, 1)) * (totalCapex / span) * innerH;
-  const hpH = (hpC / Math.max(totalCapex, 1)) * (totalCapex / span) * innerH;
-  const barTop = toY(totalCapex);
-
-  // Savings line (x mapped over years, starting from year 1)
-  const lineOffsetX = barX + barW + 40;
-  const lineW = innerW - (lineOffsetX - pad.left);
-  const savingsPath = cumSavings.map((v, i) => {
-    const x = lineOffsetX + (i / Math.max(horizon - 1, 1)) * lineW;
-    const y = toY(v);
-    return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
-  }).join(' ');
-
-  // Capex reference line across the savings area
-  const capexY = toY(totalCapex);
-  const zeroY = toY(0);
-
-  // Y-axis ticks (CHF)
-  const yTicks = axisTicks(maxVal, 5, minVal < 0 ? minVal : 0).map((tick) => {
-    const y = toY(tick);
-    return `
-      <line x1="${pad.left}" y1="${y}" x2="${width - pad.right}" y2="${y}" stroke="rgba(105,114,122,0.15)" />
-      <text x="${pad.left - 8}" y="${y + 4}" text-anchor="end" font-size="11" fill="#67727a">${fmt(tick / 1000, 0)}k</text>`;
-  }).join('');
-
-  // X-axis labels for savings line (year ticks)
-  const xStep = Math.ceil(horizon / 6);
-  const xLabels = lifecycle.years
-    .filter((_, i) => i === 0 || (i + 1) % xStep === 0 || i === horizon - 1)
-    .map((yr, _, arr) => {
-      const i = lifecycle.years.indexOf(yr);
-      const x = lineOffsetX + (i / Math.max(horizon - 1, 1)) * lineW;
-      return `<text x="${x.toFixed(1)}" y="${pad.top + innerH + 16}" text-anchor="middle" font-size="11" fill="#67727a">Yr ${yr}</text>`;
-    }).join('');
-
-  // CAPEX bar value labels
-  const pvLabel = pvC > 0 ? `<text x="${barX + barW / 2}" y="${(barTop + barTop + pvH) / 2 + 4}" text-anchor="middle" font-size="10" fill="white">PV ${fmt(pvC / 1000, 0)}k</text>` : '';
-  const stLabel = stC > 0 ? `<text x="${barX + barW / 2}" y="${(barTop + pvH + barTop + pvH + stH) / 2 + 4}" text-anchor="middle" font-size="10" fill="white">ST ${fmt(stC / 1000, 0)}k</text>` : '';
-  const hpLabel = hpC > 0 ? `<text x="${barX + barW / 2}" y="${(barTop + pvH + stH + barTop + pvH + stH + hpH) / 2 + 4}" text-anchor="middle" font-size="10" fill="white">HP ${fmt(hpC / 1000, 0)}k</text>` : '';
-
-  // Find payback year (first year cumSavings >= totalCapex)
-  const paybackIdx = cumSavings.findIndex((v) => v >= totalCapex);
-  const paybackMarker = paybackIdx >= 0 ? (() => {
-    const x = (lineOffsetX + (paybackIdx / Math.max(horizon - 1, 1)) * lineW).toFixed(1);
-    return `
-      <line x1="${x}" y1="${pad.top}" x2="${x}" y2="${pad.top + innerH}" stroke="#2e7d32" stroke-width="1" stroke-dasharray="3 3" opacity="0.6" />
-      <text x="${x}" y="${pad.top - 6}" text-anchor="middle" font-size="10" fill="#2e7d32">Payback yr ${lifecycle.years[paybackIdx]}</text>`;
-  })() : '';
-
-  const svg = `
-    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Investment and savings chart">
-      <rect x="0" y="0" width="${width}" height="${height}" rx="18" fill="rgba(255,255,255,0.01)"></rect>
-      ${yTicks}
-      <line x1="${pad.left}" y1="${pad.top + innerH}" x2="${width - pad.right}" y2="${pad.top + innerH}" stroke="rgba(23,33,38,0.38)" />
-      <line x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${pad.top + innerH}" stroke="rgba(23,33,38,0.38)" />
-      <line x1="${(lineOffsetX - 12).toFixed(1)}" y1="${pad.top}" x2="${(lineOffsetX - 12).toFixed(1)}" y2="${pad.top + innerH}" stroke="rgba(23,33,38,0.12)" stroke-dasharray="4 4" />
-      ${zeroY < pad.top + innerH ? `<line x1="${pad.left}" y1="${zeroY}" x2="${width - pad.right}" y2="${zeroY}" stroke="rgba(23,33,38,0.25)" stroke-dasharray="2 4" />` : ''}
-      <rect x="${barX}" y="${barTop}" width="${barW}" height="${pvH}" fill="#2e7d32" rx="3" />
-      <rect x="${barX}" y="${barTop + pvH}" width="${barW}" height="${stH}" fill="#8b5e3c" rx="3" />
-      <rect x="${barX}" y="${barTop + pvH + stH}" width="${barW}" height="${hpH}" fill="#1565c0" rx="3" />
-      ${pvLabel}${stLabel}${hpLabel}
-      <text x="${barX + barW / 2}" y="${barTop - 6}" text-anchor="middle" font-size="11" fill="#374550">${fmt(totalCapex / 1000, 0)}k CHF</text>
-      <text x="${barX + barW / 2}" y="${pad.top + innerH + 16}" text-anchor="middle" font-size="11" fill="#67727a">CAPEX</text>
-      <line x1="${(lineOffsetX - 12).toFixed(1)}" y1="${capexY.toFixed(1)}" x2="${width - pad.right}" y2="${capexY.toFixed(1)}" stroke="#b36b2b" stroke-width="1" stroke-dasharray="5 4" opacity="0.55" />
-      <text x="${width - pad.right + 6}" y="${capexY + 4}" font-size="10" fill="#b36b2b">CAPEX</text>
-      <path d="${savingsPath}" fill="none" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
-      ${paybackMarker}
-      ${xLabels}
-      <text x="${pad.left - 52}" y="${pad.top + innerH / 2}" text-anchor="middle" font-size="11" fill="#67727a" transform="rotate(-90 ${pad.left - 52} ${pad.top + innerH / 2})">CHF</text>
-      <line x1="${pad.left + 10}" y1="${pad.top + 14}" x2="${pad.left + 24}" y2="${pad.top + 14}" stroke="#2e7d32" stroke-width="2.5" />
-      <text x="${pad.left + 30}" y="${pad.top + 18}" font-size="12" fill="#516069">Cumulative net savings</text>
-      <rect x="${pad.left + 188}" y="${pad.top + 6}" width="12" height="12" rx="2" fill="#2e7d32" />
-      <text x="${pad.left + 206}" y="${pad.top + 17}" font-size="12" fill="#516069">PV</text>
-      <rect x="${pad.left + 226}" y="${pad.top + 6}" width="12" height="12" rx="2" fill="#8b5e3c" />
-      <text x="${pad.left + 244}" y="${pad.top + 17}" font-size="12" fill="#516069">ST</text>
-      <rect x="${pad.left + 264}" y="${pad.top + 6}" width="12" height="12" rx="2" fill="#1565c0" />
-      <text x="${pad.left + 282}" y="${pad.top + 17}" font-size="12" fill="#516069">HP</text>
-    </svg>`;
-  renderSvg(el, svg);
-}
-
 function renderSummaryTable(state, scenario, lifecycle) {
   const n = lifecycle.years.length;
   const pvFirst = lifecycle.pvGeneration[0];
@@ -802,7 +689,6 @@ function refresh() {
   renderLineChart($('cashflowChart'), [{ label: 'Cumulative NPV (CHF)', values: lifecycle.cumulativeNpv, color: '#b36b2b' }], lifecycle.years.map(String), { tickDecimals: 0 });
   renderKpis(state, scenario, lifecycle);
   renderSummaryTable(state, scenario, lifecycle);
-  renderInvestmentChart($('investmentChart'), state, scenario, lifecycle);
   renderOptimizerChart($('optimizerChart'), state);
 }
 
