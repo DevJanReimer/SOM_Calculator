@@ -142,7 +142,7 @@
           <div class="grid-2">
             <div class="field"><label for="electricityUse">Annual electricity use (kWh/y)</label><input id="electricityUse" type="number" value="41150" min="0" step="1"></div>
             <div class="field"><label for="heatUse">Annual heat use (kWh/y)</label><input id="heatUse" type="number" value="189000" min="0" step="1"></div>
-            <div class="field"><label for="roofArea">Roof area available (m²)</label><input id="roofArea" type="number" value="220" min="0" step="1"></div>
+            <div class="field"><label for="roofArea">Roof area available (m²)</label><input id="roofArea" type="number" value="303" min="0" step="1"></div>
             <div class="field"><label for="usefulHeatLoad">Useful heat load for solar thermal (kWh/y)</label><input id="usefulHeatLoad" type="number" value="20600" min="0" step="100"></div>
           </div>
 
@@ -193,17 +193,17 @@
               </select>
             </div>
 
-            <div class="field"><label for="currentPvArea">PV area (m²)</label><div class="range-row"><input id="currentPvArea" type="range" min="0" max="220" step="1" value="0"><div class="range-value" id="currentPvAreaValue">0</div></div></div>
+            <div class="field"><label for="currentPvArea">PV area (m²)</label><div class="range-row"><input id="currentPvArea" type="range" min="0" max="303" step="1" value="0"><div class="range-value" id="currentPvAreaValue">0</div></div></div>
             <div class="field">
               <label for="pvArea">PV area (m²)</label>
-              <div class="range-row"><input id="pvArea" type="range" min="0" max="220" step="1" value="120"><div class="range-value" id="pvAreaValue">120</div></div>
+              <div class="range-row"><input id="pvArea" type="range" min="0" max="303" step="1" value="120"><div class="range-value" id="pvAreaValue">120</div></div>
               <div class="roof-pct-bar" id="pvRoofBar"><div class="roof-pct-fill roof-pct-pv" id="pvRoofFill"></div></div>
             </div>
 
-            <div class="field"><label for="currentStArea">Solar-thermal area (m²)</label><div class="range-row"><input id="currentStArea" type="range" min="0" max="220" step="1" value="0"><div class="range-value" id="currentStAreaValue">0</div></div></div>
+            <div class="field"><label for="currentStArea">Solar-thermal area (m²)</label><div class="range-row"><input id="currentStArea" type="range" min="0" max="303" step="1" value="0"><div class="range-value" id="currentStAreaValue">0</div></div></div>
             <div class="field">
               <label for="stArea">Solar-thermal area (m²)</label>
-              <div class="range-row"><input id="stArea" type="range" min="0" max="220" step="1" value="0"><div class="range-value" id="stAreaValue">0</div></div>
+              <div class="range-row"><input id="stArea" type="range" min="0" max="303" step="1" value="0"><div class="range-value" id="stAreaValue">0</div></div>
               <div class="roof-pct-bar" id="stRoofBar">
                 <div class="roof-pct-fill roof-pct-pv" id="stPvFill"></div>
                 <div class="roof-pct-fill roof-pct-st" id="stStFill"></div>
@@ -332,8 +332,8 @@
       <div class="card adjust-panel">
         <h3>Quick adjust</h3>
         <div class="adjust-grid">
-          <div class="field"><label for="rPvArea">New PV area (m²)</label><div class="range-row"><input id="rPvArea" type="range" min="0" max="220" step="1" value="120"><div class="range-value" id="rPvAreaValue">120</div></div></div>
-          <div class="field"><label for="rStArea">New solar-thermal area (m²)</label><div class="range-row"><input id="rStArea" type="range" min="0" max="220" step="1" value="0"><div class="range-value" id="rStAreaValue">0</div></div></div>
+          <div class="field"><label for="rPvArea">New PV area (m²)</label><div class="range-row"><input id="rPvArea" type="range" min="0" max="303" step="1" value="120"><div class="range-value" id="rPvAreaValue">120</div></div></div>
+          <div class="field"><label for="rStArea">New solar-thermal area (m²)</label><div class="range-row"><input id="rStArea" type="range" min="0" max="303" step="1" value="0"><div class="range-value" id="rStAreaValue">0</div></div></div>
           <div class="field"><label for="rPvSelfShare">PV self-consumption share</label><div class="range-row"><input id="rPvSelfShare" type="range" min="0.2" max="0.95" step="0.05" value="0.4"><div class="range-value" id="rPvSelfShareValue">40%</div></div></div>
         </div>
       </div>

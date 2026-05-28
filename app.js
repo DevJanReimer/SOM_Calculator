@@ -1,7 +1,7 @@
 const DEFAULTS = {
   electricityUse: 41150,
   heatUse: 189000,
-  roofArea: 220,
+  roofArea: 303,
   usefulHeatLoad: 20600,
   electricityMix: 'wwz',
   heatMethod: 'districtWood',
@@ -134,7 +134,9 @@ function updateCapexHints(pvArea, stArea, pvRate, stRate) {
 function syncRanges(state) {
   $(rangeIds.currentPvArea).textContent = fmt(state.currentPvArea, 0);
   $(rangeIds.currentStArea).textContent = fmt(state.currentStArea, 0);
-  $(rangeIds.pvArea).textContent = fmt(state.pvArea, 0);
+  $(rangeIds.pvArea).textContent = state.roofArea > 0
+    ? `${fmt(state.pvArea, 0)} m² (${Math.round(state.pvArea / state.roofArea * 100)}%)`
+    : fmt(state.pvArea, 0);
   $(rangeIds.pvYield).textContent = fmt(state.pvYield, 0);
   $(rangeIds.pvSelfShare).textContent = pct(state.pvSelfShare * 100, 0);
   $(rangeIds.stArea).textContent = fmt(state.stArea, 0);
