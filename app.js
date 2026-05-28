@@ -767,10 +767,28 @@ function syncRangeLabels() {
   syncRanges(state);
 }
 
-// Enforce roof area constraint: when pvArea or stArea slider moves,
-// clamp the other so their sum never exceeds roofArea.
+// Enforce roof area constraint: when any PV or ST area slider moves,
+// clamp the paired slider so their sum never exceeds roofArea.
 function applyRoofConstraint(movedId) {
   const roofArea = Number($('roofArea').value);
+
+  if (movedId === 'currentPvArea' || movedId === 'currentStArea') {
+    const pvEl = $('currentPvArea');
+    const stEl = $('currentStArea');
+    if (movedId === 'currentPvArea') {
+      const pv = Math.min(Number(pvEl.value), roofArea);
+      pvEl.value = pv;
+      const maxSt = Math.max(0, roofArea - pv);
+      if (Number(stEl.value) > maxSt) stEl.value = maxSt;
+    } else {
+      const st = Math.min(Number(stEl.value), roofArea);
+      stEl.value = st;
+      const maxPv = Math.max(0, roofArea - st);
+      if (Number(pvEl.value) > maxPv) pvEl.value = maxPv;
+    }
+    return;
+  }
+
   const pvEl = $('pvArea');
   const stEl = $('stArea');
   const rPvEl = $('rPvArea');
@@ -802,8 +820,10 @@ function bindEvents() {
     const el = $(id);
     if (!el) return;
     el.addEventListener('input', () => {
-      if (id === 'pvArea' || id === 'stArea') {
+      if (id === 'pvArea' || id === 'stArea' || id === 'currentPvArea' || id === 'currentStArea') {
         applyRoofConstraint(id);
+      }
+      if (id === 'pvArea' || id === 'stArea') {
         updateCapexHints(
           Number($('pvArea').value),
           Number($('stArea').value),
