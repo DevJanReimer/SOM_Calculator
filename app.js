@@ -527,7 +527,7 @@ function renderLineChart(el, series, labels, options = {}) {
 function renderOptimizerChart(el, state) {
   const width = 860;
   const height = 460;
-  const pad = { top: 24, right: 24, bottom: 44, left: 56 };
+  const pad = { top: 32, right: 80, bottom: 56, left: 64 };
   const innerW = width - pad.left - pad.right;
   const innerH = height - pad.top - pad.bottom;
   const points = [];
@@ -564,19 +564,35 @@ function renderOptimizerChart(el, state) {
     return `${i === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
   }).join(' ');
 
-  const ticks = axisTicks(maxA, 4).map((tick) => {
+  // Left y-axis ticks: CO₂ avoided (t/y)
+  const leftTicks = axisTicks(maxA, 4).map((tick) => {
     const y = pad.top + (1 - (tick / maxA)) * innerH;
     return `
       <line x1="${pad.left}" y1="${y}" x2="${width - pad.right}" y2="${y}" stroke="rgba(105,114,122,0.18)" />
-      <text x="${pad.left - 8}" y="${y + 4}" text-anchor="end" font-size="11" fill="#67727a">${fmt(tick, 1)}</text>`;
+      <text x="${pad.left - 8}" y="${y + 4}" text-anchor="end" font-size="11" fill="#3d5b43">${fmt(tick, 1)}</text>`;
+  }).join('');
+
+  // Right y-axis ticks: abatement cost (CHF/t)
+  const rightTicks = axisTicks(maxC, 4, minC).map((tick) => {
+    const y = pad.top + (1 - ((tick - minC) / costSpan)) * innerH;
+    return `<text x="${width - pad.right + 8}" y="${y + 4}" text-anchor="start" font-size="11" fill="#b36b2b">${fmt(tick, 0)}</text>`;
+  }).join('');
+
+  // x-axis labels: PV fraction with ST/PV endpoint labels
+  const xLabels = Array.from({ length: 6 }, (_, i) => {
+    const x = pad.left + (i / 5) * innerW;
+    const pct = Math.round((i / 5) * 100);
+    return `<text x="${x}" y="${pad.top + innerH + 16}" text-anchor="middle" font-size="11" fill="#67727a">${pct}%</text>`;
   }).join('');
 
   const svg = `
     <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Roof optimizer chart">
       <rect x="0" y="0" width="${width}" height="${height}" rx="18" fill="rgba(255,255,255,0.01)"></rect>
-      ${ticks}
+      ${leftTicks}
+      ${rightTicks}
       <line x1="${pad.left}" y1="${pad.top + innerH}" x2="${width - pad.right}" y2="${pad.top + innerH}" stroke="rgba(23,33,38,0.38)" />
       <line x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${pad.top + innerH}" stroke="rgba(23,33,38,0.38)" />
+      <line x1="${width - pad.right}" y1="${pad.top}" x2="${width - pad.right}" y2="${pad.top + innerH}" stroke="rgba(23,33,38,0.18)" />
       <path d="${co2Path}" fill="none" stroke="#3d5b43" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
       <path d="${costPath}" fill="none" stroke="#b36b2b" stroke-width="3" stroke-dasharray="6 6" stroke-linecap="round" stroke-linejoin="round" />
       ${points.map((point, i) => {
@@ -590,18 +606,19 @@ function renderOptimizerChart(el, state) {
         const y = pad.top + (1 - ((point.cost - minC) / costSpan)) * innerH;
         return `<circle cx="${x}" cy="${y}" r="2.5" fill="#b36b2b"></circle>`;
       }).join('')}
-      ${Array.from({ length: 6 }, (_, i) => {
-        const x = pad.left + (i / 5) * innerW;
-        return `<text x="${x}" y="${height - 14}" text-anchor="middle" font-size="11" fill="#67727a">${(i / 5).toFixed(2)}</text>`;
-      }).join('')}
-      <rect x="${width - 242}" y="${pad.top + 4}" width="14" height="14" rx="4" fill="#3d5b43"></rect>
-      <text x="${width - 222}" y="${pad.top + 15}" font-size="12" fill="#516069">CO₂ avoided</text>
-      <rect x="${width - 126}" y="${pad.top + 4}" width="14" height="14" rx="4" fill="#b36b2b"></rect>
-      <text x="${width - 106}" y="${pad.top + 15}" font-size="12" fill="#516069">Abatement cost</text>
+      ${xLabels}
+      <text x="${pad.left}" y="${height - 4}" text-anchor="middle" font-size="11" fill="#67727a">← 100% ST</text>
+      <text x="${width - pad.right}" y="${height - 4}" text-anchor="middle" font-size="11" fill="#67727a">100% PV →</text>
+      <text x="${pad.left - 46}" y="${pad.top + innerH / 2}" text-anchor="middle" font-size="11" fill="#3d5b43" transform="rotate(-90 ${pad.left - 46} ${pad.top + innerH / 2})">CO₂ avoided (t/y)</text>
+      <text x="${width - pad.right + 58}" y="${pad.top + innerH / 2}" text-anchor="middle" font-size="11" fill="#b36b2b" transform="rotate(90 ${width - pad.right + 58} ${pad.top + innerH / 2})">Abatement cost (CHF/t)</text>
+      <rect x="${pad.left + 8}" y="${pad.top + 4}" width="14" height="14" rx="4" fill="#3d5b43"></rect>
+      <text x="${pad.left + 28}" y="${pad.top + 15}" font-size="12" fill="#516069">CO₂ avoided (t/y)</text>
+      <rect x="${pad.left + 160}" y="${pad.top + 4}" width="14" height="14" rx="4" fill="#b36b2b"></rect>
+      <text x="${pad.left + 180}" y="${pad.top + 15}" font-size="12" fill="#516069">Abatement cost (CHF/t)</text>
     </svg>`;
   renderSvg(el, svg);
-  $('optimizerCostBadge').textContent = `x* = ${bestCost.x.toFixed(2)} / ${fmt(bestCost.value, 0)} CHF/t`;
-  $('optimizerCo2Badge').textContent = `max CO₂ = ${bestCo2.x.toFixed(2)} / ${fmt(bestCo2.value / 1000, 2)} t`;
+  $('optimizerCostBadge').textContent = `x* = ${Math.round(bestCost.x * 100)}% PV / ${fmt(bestCost.value, 0)} CHF/t`;
+  $('optimizerCo2Badge').textContent = `max CO₂ = ${Math.round(bestCo2.x * 100)}% PV / ${fmt(bestCo2.value / 1000, 2)} t/y`;
 }
 
 function renderSummaryTable(state, scenario, lifecycle) {
