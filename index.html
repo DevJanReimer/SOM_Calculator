@@ -360,12 +360,13 @@
       <div class="optimizer">
         <div class="card chart-card">
           <header>
-            <div><h3>Roof optimizer</h3><div class="chart-note">PV / solar-thermal split that minimizes abatement cost vs. maximizes CO₂ avoided.</div></div>
+            <div><h3>Roof optimizer</h3><div class="chart-note">How does the PV / solar-thermal split affect climate impact and cost-effectiveness?</div></div>
             <div class="pill-row">
               <span class="pill good" id="optimizerCostBadge">x* = —</span>
               <span class="pill warn" id="optimizerCo2Badge">max CO₂ = —</span>
             </div>
           </header>
+          <p class="optimizer-desc">The x-axis shows the share of available roof area allocated to PV (0 = all solar thermal, 1 = all PV). The <strong>green line</strong> shows annual CO₂ avoided (t/y) — higher is better. The <strong>orange dashed line</strong> shows the abatement cost (CHF per tonne CO₂ avoided), which combines annualised investment, O&amp;M, and energy savings — lower is better. The <em>x*</em> badge marks the split with the lowest abatement cost; the <em>max CO₂</em> badge marks the split that avoids the most emissions.</p>
           <div id="optimizerChart" class="chart-wrap"></div>
         </div>
 

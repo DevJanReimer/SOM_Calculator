@@ -480,6 +480,7 @@ button.primary:hover { background: linear-gradient(180deg, #2b6340, #1a3d2b); }
 
 .chart-card h3 { font-size: 22px; }
 .chart-note { color: var(--muted); font-size: 12px; }
+.optimizer-desc { font-size: 13px; color: var(--muted); line-height: 1.6; margin: 6px 0 10px; padding: 0 2px; }
 .chart-wrap { width: 100%; overflow-x: auto; }
 .chart-wrap svg { width: 100%; height: auto; display: block; }
 
