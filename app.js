@@ -132,8 +132,12 @@ function updateCapexHints(pvArea, stArea, pvRate, stRate) {
 }
 
 function syncRanges(state) {
-  $(rangeIds.currentPvArea).textContent = fmt(state.currentPvArea, 0);
-  $(rangeIds.currentStArea).textContent = fmt(state.currentStArea, 0);
+  $(rangeIds.currentPvArea).textContent = state.roofArea > 0
+    ? `${fmt(state.currentPvArea, 0)} m² (${Math.round(state.currentPvArea / state.roofArea * 100)}%)`
+    : fmt(state.currentPvArea, 0);
+  $(rangeIds.currentStArea).textContent = state.roofArea > 0
+    ? `${fmt(state.currentStArea, 0)} m² (${Math.round(state.currentStArea / state.roofArea * 100)}%)`
+    : fmt(state.currentStArea, 0);
   $(rangeIds.pvArea).textContent = state.roofArea > 0
     ? `${fmt(state.pvArea, 0)} m² (${Math.round(state.pvArea / state.roofArea * 100)}%)`
     : fmt(state.pvArea, 0);
