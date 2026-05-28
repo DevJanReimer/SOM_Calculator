@@ -526,59 +526,73 @@ function renderLineChart(el, series, labels, options = {}) {
 
 function renderOptimizerChart(el, state) {
   const width = 860;
-  const height = 460;
-  const pad = { top: 32, right: 80, bottom: 56, left: 64 };
+  const height = 480;
+  const pad = { top: 40, right: 80, bottom: 56, left: 64 };
   const innerW = width - pad.left - pad.right;
   const innerH = height - pad.top - pad.bottom;
   const points = [];
   let bestCost = { x: 0, value: Infinity };
   let bestCo2 = { x: 0, value: -Infinity };
 
-  for (let i = 0; i <= 24; i += 1) {
-    const x = i / 24;
+  const usefulHeat = Math.max(state.usefulHeatLoad, 1);
+  const totalElec = Math.max(state.electricityUse, 1);
+
+  for (let i = 0; i <= 48; i += 1) {
+    const x = i / 48;
     const pvArea = state.roofArea * x;
     const stArea = state.roofArea * (1 - x);
     const s = annualScenario(state, 0, { pvArea, stArea });
     const annualizedCapex = s.capex * annuityFactor(state.discountRate / 100, Math.max(1, Math.round(state.horizonYears)));
     const abatement = s.annualAvoided > 0 ? ((annualizedCapex + s.om - s.savings) / (s.annualAvoided / 1000)) : Infinity;
-    points.push({ x, avoided: s.annualAvoided / 1000, cost: Number.isFinite(abatement) ? abatement : null });
+    // pvCoverage: share of total electricity demand covered by PV self-consumption
+    const pvCoverage = s.pvSelf / totalElec;
+    // stCoverage: share of addressable heat demand (usefulHeatLoad) covered by ST
+    const stCoverage = Math.min(s.heatThermalUseful / usefulHeat, 1);
+    points.push({
+      x, avoided: s.annualAvoided / 1000, cost: Number.isFinite(abatement) ? abatement : null,
+      pvCoverage, stCoverage, savings: s.savings,
+    });
     if (Number.isFinite(abatement) && abatement < bestCost.value) bestCost = { x, value: abatement };
     if (s.annualAvoided > bestCo2.value) bestCo2 = { x, value: s.annualAvoided };
   }
 
-  const maxA = Math.max(...points.map((p) => p.avoided), 0.0001);
-  const maxC = Math.max(...points.map((p) => p.cost ?? 0), 0.0001);
-  const minC = Math.min(...points.map((p) => p.cost ?? 0), 0);
-  const costSpan = Math.max(maxC - minC, 1e-9);
+  const maxCo2 = Math.max(...points.map((p) => p.avoided), 0.0001);
 
-  const co2Path = points.map((point, i) => {
-    const x = pad.left + (i / Math.max(points.length - 1, 1)) * innerW;
-    const y = pad.top + (1 - (point.avoided / maxA)) * innerH;
-    return `${i === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
-  }).join(' ');
-
-  const costPath = points.filter((p) => p.cost !== null).map((point, i) => {
-    const idx = points.indexOf(point);
-    const x = pad.left + (idx / Math.max(points.length - 1, 1)) * innerW;
-    const y = pad.top + (1 - ((point.cost - minC) / costSpan)) * innerH;
-    return `${i === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
-  }).join(' ');
-
-  // Left y-axis ticks: CO₂ avoided (t/y)
-  const leftTicks = axisTicks(maxA, 4).map((tick) => {
-    const y = pad.top + (1 - (tick / maxA)) * innerH;
+  // Left y-axis: coverage % (0–100)
+  const leftTicks = [0, 25, 50, 75, 100].map((pct) => {
+    const y = pad.top + (1 - pct / 100) * innerH;
     return `
-      <line x1="${pad.left}" y1="${y}" x2="${width - pad.right}" y2="${y}" stroke="rgba(105,114,122,0.18)" />
-      <text x="${pad.left - 8}" y="${y + 4}" text-anchor="end" font-size="11" fill="#3d5b43">${fmt(tick, 1)}</text>`;
+      <line x1="${pad.left}" y1="${y}" x2="${width - pad.right}" y2="${y}" stroke="rgba(105,114,122,0.15)" />
+      <text x="${pad.left - 8}" y="${y + 4}" text-anchor="end" font-size="11" fill="#67727a">${pct}%</text>`;
   }).join('');
 
-  // Right y-axis ticks: abatement cost (CHF/t)
-  const rightTicks = axisTicks(maxC, 4, minC).map((tick) => {
-    const y = pad.top + (1 - ((tick - minC) / costSpan)) * innerH;
-    return `<text x="${width - pad.right + 8}" y="${y + 4}" text-anchor="start" font-size="11" fill="#b36b2b">${fmt(tick, 0)}</text>`;
+  // Right y-axis: CO₂ avoided (t/y)
+  const rightTicks = axisTicks(maxCo2, 4).map((tick) => {
+    const y = pad.top + (1 - tick / maxCo2) * innerH;
+    return `<text x="${width - pad.right + 8}" y="${y + 4}" text-anchor="start" font-size="11" fill="#3d5b43">${fmt(tick, 1)}</text>`;
   }).join('');
 
-  // x-axis labels: PV fraction with ST/PV endpoint labels
+  const pvPath = points.map((p, i) => {
+    const x = pad.left + (i / (points.length - 1)) * innerW;
+    const y = pad.top + (1 - p.pvCoverage) * innerH;
+    return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
+  }).join(' ');
+
+  const stPath = points.map((p, i) => {
+    const x = pad.left + (i / (points.length - 1)) * innerW;
+    const y = pad.top + (1 - p.stCoverage) * innerH;
+    return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
+  }).join(' ');
+
+  const co2Path = points.map((p, i) => {
+    const x = pad.left + (i / (points.length - 1)) * innerW;
+    const y = pad.top + (1 - p.avoided / maxCo2) * innerH;
+    return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
+  }).join(' ');
+
+  // Vertical marker at best-cost split
+  const optX = pad.left + bestCost.x * innerW;
+
   const xLabels = Array.from({ length: 6 }, (_, i) => {
     const x = pad.left + (i / 5) * innerW;
     const pct = Math.round((i / 5) * 100);
@@ -593,28 +607,22 @@ function renderOptimizerChart(el, state) {
       <line x1="${pad.left}" y1="${pad.top + innerH}" x2="${width - pad.right}" y2="${pad.top + innerH}" stroke="rgba(23,33,38,0.38)" />
       <line x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${pad.top + innerH}" stroke="rgba(23,33,38,0.38)" />
       <line x1="${width - pad.right}" y1="${pad.top}" x2="${width - pad.right}" y2="${pad.top + innerH}" stroke="rgba(23,33,38,0.18)" />
-      <path d="${co2Path}" fill="none" stroke="#3d5b43" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
-      <path d="${costPath}" fill="none" stroke="#b36b2b" stroke-width="3" stroke-dasharray="6 6" stroke-linecap="round" stroke-linejoin="round" />
-      ${points.map((point, i) => {
-        const x = pad.left + (i / Math.max(points.length - 1, 1)) * innerW;
-        const y = pad.top + (1 - (point.avoided / maxA)) * innerH;
-        return `<circle cx="${x}" cy="${y}" r="2.6" fill="#3d5b43"></circle>`;
-      }).join('')}
-      ${points.filter((p) => p.cost !== null).map((point) => {
-        const idx = points.indexOf(point);
-        const x = pad.left + (idx / Math.max(points.length - 1, 1)) * innerW;
-        const y = pad.top + (1 - ((point.cost - minC) / costSpan)) * innerH;
-        return `<circle cx="${x}" cy="${y}" r="2.5" fill="#b36b2b"></circle>`;
-      }).join('')}
+      <line x1="${optX.toFixed(1)}" y1="${pad.top}" x2="${optX.toFixed(1)}" y2="${pad.top + innerH}" stroke="#b36b2b" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.7" />
+      <text x="${optX.toFixed(1)}" y="${pad.top - 6}" text-anchor="middle" font-size="10" fill="#b36b2b">x* (lowest cost)</text>
+      <path d="${pvPath}" fill="none" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="${stPath}" fill="none" stroke="#8b5e3c" stroke-width="2.5" stroke-dasharray="7 4" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="${co2Path}" fill="none" stroke="#3d8a6e" stroke-width="2" stroke-dasharray="3 3" stroke-linecap="round" stroke-linejoin="round" opacity="0.75" />
       ${xLabels}
-      <text x="${pad.left}" y="${height - 4}" text-anchor="middle" font-size="11" fill="#67727a">← 100% ST</text>
-      <text x="${width - pad.right}" y="${height - 4}" text-anchor="middle" font-size="11" fill="#67727a">100% PV →</text>
-      <text x="${pad.left - 46}" y="${pad.top + innerH / 2}" text-anchor="middle" font-size="11" fill="#3d5b43" transform="rotate(-90 ${pad.left - 46} ${pad.top + innerH / 2})">CO₂ avoided (t/y)</text>
-      <text x="${width - pad.right + 58}" y="${pad.top + innerH / 2}" text-anchor="middle" font-size="11" fill="#b36b2b" transform="rotate(90 ${width - pad.right + 58} ${pad.top + innerH / 2})">Abatement cost (CHF/t)</text>
-      <rect x="${pad.left + 8}" y="${pad.top + 4}" width="14" height="14" rx="4" fill="#3d5b43"></rect>
-      <text x="${pad.left + 28}" y="${pad.top + 15}" font-size="12" fill="#516069">CO₂ avoided (t/y)</text>
-      <rect x="${pad.left + 160}" y="${pad.top + 4}" width="14" height="14" rx="4" fill="#b36b2b"></rect>
-      <text x="${pad.left + 180}" y="${pad.top + 15}" font-size="12" fill="#516069">Abatement cost (CHF/t)</text>
+      <text x="${pad.left + 4}" y="${height - 4}" text-anchor="start" font-size="11" fill="#67727a">← 100% Solar Thermal</text>
+      <text x="${width - pad.right - 4}" y="${height - 4}" text-anchor="end" font-size="11" fill="#67727a">100% PV →</text>
+      <text x="${pad.left - 48}" y="${pad.top + innerH / 2}" text-anchor="middle" font-size="11" fill="#67727a" transform="rotate(-90 ${pad.left - 48} ${pad.top + innerH / 2})">Energy demand covered</text>
+      <text x="${width - pad.right + 58}" y="${pad.top + innerH / 2}" text-anchor="middle" font-size="11" fill="#3d8a6e" transform="rotate(90 ${width - pad.right + 58} ${pad.top + innerH / 2})">CO₂ avoided (t/y)</text>
+      <line x1="${pad.left + 10}" y1="${pad.top + 14}" x2="${pad.left + 28}" y2="${pad.top + 14}" stroke="#2e7d32" stroke-width="2.5" />
+      <text x="${pad.left + 34}" y="${pad.top + 18}" font-size="12" fill="#516069">PV → electricity coverage</text>
+      <line x1="${pad.left + 218}" y1="${pad.top + 14}" x2="${pad.left + 236}" y2="${pad.top + 14}" stroke="#8b5e3c" stroke-width="2.5" stroke-dasharray="5 3" />
+      <text x="${pad.left + 242}" y="${pad.top + 18}" font-size="12" fill="#516069">ST → heat coverage (of addressable load)</text>
+      <line x1="${pad.left + 518}" y1="${pad.top + 14}" x2="${pad.left + 536}" y2="${pad.top + 14}" stroke="#3d8a6e" stroke-width="2" stroke-dasharray="3 3" opacity="0.75" />
+      <text x="${pad.left + 542}" y="${pad.top + 18}" font-size="12" fill="#516069">CO₂ avoided</text>
     </svg>`;
   renderSvg(el, svg);
   $('optimizerCostBadge').textContent = `x* = ${Math.round(bestCost.x * 100)}% PV / ${fmt(bestCost.value, 0)} CHF/t`;
