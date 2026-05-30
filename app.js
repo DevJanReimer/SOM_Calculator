@@ -589,6 +589,14 @@ function renderOptimizerChart(el, state) {
     return `<text x="${toX(f)}" y="${pad.top + innerH + 16}" text-anchor="middle" font-size="11" fill="#67727a">${Math.round(f * 100)}%</text>`;
   }).join('');
 
+  // x* line: lowest abatement cost split
+  const optSvg = (() => {
+    const ox = toX(bestCost.x);
+    return `
+      <line x1="${ox}" y1="${pad.top}" x2="${ox}" y2="${pad.top + innerH}" stroke="#2e7d32" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.6"/>
+      <text x="${ox}" y="${pad.top - 8}" text-anchor="middle" font-size="10" fill="#2e7d32">x* ${Math.round(bestCost.x * 100)}% PV</text>`;
+  })();
+
   const eqSvg = equilibrium != null ? (() => {
     const ex = toX(equilibrium);
     const eqPt = points[Math.min(Math.round(equilibrium * 48), points.length - 1)];
@@ -613,6 +621,7 @@ function renderOptimizerChart(el, state) {
       ${gridLines}
       <line x1="${pad.left}" y1="${pad.top + innerH}" x2="${width - pad.right}" y2="${pad.top + innerH}" stroke="rgba(23,33,38,0.38)" />
       <line x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${pad.top + innerH}" stroke="rgba(23,33,38,0.38)" />
+      ${optSvg}
       ${eqSvg}
       ${selSvg}
       <path d="${pvPath}" fill="none" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
@@ -625,10 +634,12 @@ function renderOptimizerChart(el, state) {
       <text x="${pad.left + 34}" y="${pad.top + 26}" font-size="12" fill="#516069">PV covers electricity demand</text>
       <line x1="${pad.left + 236}" y1="${pad.top + 22}" x2="${pad.left + 254}" y2="${pad.top + 22}" stroke="#8b5e3c" stroke-width="2.5" stroke-dasharray="6 3" />
       <text x="${pad.left + 260}" y="${pad.top + 26}" font-size="12" fill="#516069">ST covers heat demand</text>
-      <line x1="${pad.left + 420}" y1="${pad.top + 22}" x2="${pad.left + 438}" y2="${pad.top + 22}" stroke="#1565c0" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.7" />
-      <text x="${pad.left + 444}" y="${pad.top + 26}" font-size="12" fill="#516069">Equilibrium</text>
-      <line x1="${pad.left + 530}" y1="${pad.top + 22}" x2="${pad.left + 548}" y2="${pad.top + 22}" stroke="#b36b2b" stroke-width="2" />
-      <text x="${pad.left + 554}" y="${pad.top + 26}" font-size="12" fill="#516069">Selected</text>
+      <line x1="${pad.left + 402}" y1="${pad.top + 22}" x2="${pad.left + 420}" y2="${pad.top + 22}" stroke="#2e7d32" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.6" />
+      <text x="${pad.left + 426}" y="${pad.top + 26}" font-size="12" fill="#516069">x* optimal</text>
+      <line x1="${pad.left + 502}" y1="${pad.top + 22}" x2="${pad.left + 520}" y2="${pad.top + 22}" stroke="#1565c0" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.7" />
+      <text x="${pad.left + 526}" y="${pad.top + 26}" font-size="12" fill="#516069">Equilibrium</text>
+      <line x1="${pad.left + 614}" y1="${pad.top + 22}" x2="${pad.left + 632}" y2="${pad.top + 22}" stroke="#b36b2b" stroke-width="2" />
+      <text x="${pad.left + 638}" y="${pad.top + 26}" font-size="12" fill="#516069">Selected</text>
     </svg>`;
   renderSvg(el, svg);
   $('optimizerCostBadge').textContent = `x* = ${Math.round(bestCost.x * 100)}% PV / ${fmt(bestCost.value, 0)} CHF/t`;
