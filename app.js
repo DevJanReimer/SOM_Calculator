@@ -223,11 +223,10 @@ function annualScenario(state, yearIndex = 0, overrides = {}) {
   const pvArea = overrides.pvArea ?? state.pvArea;
   const stArea = overrides.stArea ?? state.stArea;
 
-  const stAddressableHeat = state.heatUse * (state.stHeatPct / 100);
-
   const curPvGen = state.currentPvArea * state.pvYield * pvFactor;
   const curPvSelf = Math.min(curPvGen * state.pvSelfShare, state.electricityUse);
-  const curStHeat = Math.min(state.currentStArea * state.stYield * stFactor * state.stUtilization, stAddressableHeat);
+  // stHeatPct: fraction of raw ST yield deliverable to the building (seasonal match)
+  const curStHeat = Math.min(state.currentStArea * state.stYield * stFactor * (state.stHeatPct / 100), state.heatUse);
 
   const baselineElectricity = Math.max(state.electricityUse - curPvSelf, 0);
   const baselineHeat = Math.max(state.heatUse - curStHeat, 0);
@@ -237,8 +236,7 @@ function annualScenario(state, yearIndex = 0, overrides = {}) {
   const pvGeneration = pvArea * state.pvYield * pvFactor;
   const pvPotentialSelf = pvGeneration * state.pvSelfShare;
 
-  const heatThermalRaw = stArea * state.stYield * stFactor * state.stUtilization;
-  const heatThermalUseful = Math.min(heatThermalRaw, stAddressableHeat);
+  const heatThermalUseful = Math.min(stArea * state.stYield * stFactor * (state.stHeatPct / 100), baselineHeat);
   const heatAfterThermal = Math.max(baselineHeat - heatThermalUseful, 0);
 
   const hpElectricity = state.hpEnabled ? heatAfterThermal / Math.max(state.cop, 1e-6) : 0;
@@ -533,15 +531,15 @@ function renderLineChart(el, series, labels, options = {}) {
 function renderOptimizerChart(el, state) {
   const width = 860;
   const height = 480;
-  const pad = { top: 40, right: 80, bottom: 56, left: 64 };
+  const pad = { top: 44, right: 24, bottom: 56, left: 64 };
   const innerW = width - pad.left - pad.right;
   const innerH = height - pad.top - pad.bottom;
   const points = [];
   let bestCost = { x: 0, value: Infinity };
   let bestCo2 = { x: 0, value: -Infinity };
 
-  const usefulHeat = Math.max(state.heatUse * (state.stHeatPct / 100), 1);
   const totalElec = Math.max(state.electricityUse, 1);
+  const totalHeat = Math.max(state.heatUse, 1);
 
   for (let i = 0; i <= 48; i += 1) {
     const x = i / 48;
@@ -550,85 +548,87 @@ function renderOptimizerChart(el, state) {
     const s = annualScenario(state, 0, { pvArea, stArea });
     const annualizedCapex = s.capex * annuityFactor(state.discountRate / 100, Math.max(1, Math.round(state.horizonYears)));
     const abatement = s.annualAvoided > 0 ? ((annualizedCapex + s.om - s.savings) / (s.annualAvoided / 1000)) : Infinity;
-    // pvCoverage: share of total electricity demand covered by PV self-consumption
     const pvCoverage = s.pvSelf / totalElec;
-    // stCoverage: share of addressable heat demand (stHeatPct % of heatUse) covered by ST
-    const stCoverage = Math.min(s.heatThermalUseful / usefulHeat, 1);
-    points.push({
-      x, avoided: s.annualAvoided / 1000, cost: Number.isFinite(abatement) ? abatement : null,
-      pvCoverage, stCoverage, savings: s.savings,
-    });
+    const stCoverage = s.heatThermalUseful / totalHeat;
+    points.push({ x, pvCoverage, stCoverage, avoided: s.annualAvoided / 1000 });
     if (Number.isFinite(abatement) && abatement < bestCost.value) bestCost = { x, value: abatement };
     if (s.annualAvoided > bestCo2.value) bestCo2 = { x, value: s.annualAvoided };
   }
 
-  const maxCo2 = Math.max(...points.map((p) => p.avoided), 0.0001);
+  // Find equilibrium: crossing point where pvCoverage == stCoverage
+  let equilibrium = null;
+  for (let i = 0; i < points.length - 1; i++) {
+    const a = points[i], b = points[i + 1];
+    const da = a.pvCoverage - a.stCoverage;
+    const db = b.pvCoverage - b.stCoverage;
+    if (da * db <= 0 && da !== db) {
+      const t = da / (da - db);
+      equilibrium = a.x + t * (b.x - a.x);
+      break;
+    }
+  }
 
-  // Left y-axis: coverage % (0–100)
-  const leftTicks = [0, 25, 50, 75, 100].map((pct) => {
-    const y = pad.top + (1 - pct / 100) * innerH;
+  // Actual selection as fraction of roof
+  const selFrac = state.roofArea > 0 ? Math.min(state.pvArea / state.roofArea, 1) : null;
+
+  const toX = (f) => (pad.left + f * innerW).toFixed(1);
+  const toY = (v) => (pad.top + (1 - Math.min(Math.max(v, 0), 1)) * innerH).toFixed(1);
+
+  const pvPath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${toX(p.x)} ${toY(p.pvCoverage)}`).join(' ');
+  const stPath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${toX(p.x)} ${toY(p.stCoverage)}`).join(' ');
+
+  const gridLines = [0, 25, 50, 75, 100].map((pct) => {
+    const y = toY(pct / 100);
     return `
       <line x1="${pad.left}" y1="${y}" x2="${width - pad.right}" y2="${y}" stroke="rgba(105,114,122,0.15)" />
-      <text x="${pad.left - 8}" y="${y + 4}" text-anchor="end" font-size="11" fill="#67727a">${pct}%</text>`;
+      <text x="${pad.left - 8}" y="${+y + 4}" text-anchor="end" font-size="11" fill="#67727a">${pct}%</text>`;
   }).join('');
-
-  // Right y-axis: CO₂ avoided (t/y)
-  const rightTicks = axisTicks(maxCo2, 4).map((tick) => {
-    const y = pad.top + (1 - tick / maxCo2) * innerH;
-    return `<text x="${width - pad.right + 8}" y="${y + 4}" text-anchor="start" font-size="11" fill="#3d5b43">${fmt(tick, 1)}</text>`;
-  }).join('');
-
-  const pvPath = points.map((p, i) => {
-    const x = pad.left + (i / (points.length - 1)) * innerW;
-    const y = pad.top + (1 - p.pvCoverage) * innerH;
-    return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
-  }).join(' ');
-
-  const stPath = points.map((p, i) => {
-    const x = pad.left + (i / (points.length - 1)) * innerW;
-    const y = pad.top + (1 - p.stCoverage) * innerH;
-    return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
-  }).join(' ');
-
-  const co2Path = points.map((p, i) => {
-    const x = pad.left + (i / (points.length - 1)) * innerW;
-    const y = pad.top + (1 - p.avoided / maxCo2) * innerH;
-    return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
-  }).join(' ');
-
-  // Vertical marker at best-cost split
-  const optX = pad.left + bestCost.x * innerW;
 
   const xLabels = Array.from({ length: 6 }, (_, i) => {
-    const x = pad.left + (i / 5) * innerW;
-    const pct = Math.round((i / 5) * 100);
-    return `<text x="${x}" y="${pad.top + innerH + 16}" text-anchor="middle" font-size="11" fill="#67727a">${pct}%</text>`;
+    const f = i / 5;
+    return `<text x="${toX(f)}" y="${pad.top + innerH + 16}" text-anchor="middle" font-size="11" fill="#67727a">${Math.round(f * 100)}%</text>`;
   }).join('');
+
+  const eqSvg = equilibrium != null ? (() => {
+    const ex = toX(equilibrium);
+    const eqPt = points[Math.min(Math.round(equilibrium * 48), points.length - 1)];
+    const ey = toY(eqPt.pvCoverage);
+    return `
+      <line x1="${ex}" y1="${pad.top}" x2="${ex}" y2="${pad.top + innerH}" stroke="#1565c0" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.7"/>
+      <circle cx="${ex}" cy="${ey}" r="5" fill="#1565c0" opacity="0.85"/>
+      <text x="${ex}" y="${pad.top - 8}" text-anchor="middle" font-size="10" fill="#1565c0">Equilibrium ${Math.round(equilibrium * 100)}% PV</text>`;
+  })() : '';
+
+  const selSvg = selFrac != null ? (() => {
+    const sx = toX(selFrac);
+    return `
+      <line x1="${sx}" y1="${pad.top}" x2="${sx}" y2="${pad.top + innerH}" stroke="#b36b2b" stroke-width="2" opacity="0.9"/>
+      <text x="${sx}" y="${pad.top - 20}" text-anchor="middle" font-size="10" fill="#b36b2b">Selected</text>
+      <text x="${sx}" y="${pad.top - 8}" text-anchor="middle" font-size="10" fill="#b36b2b">${Math.round(state.pvArea)}m² PV / ${Math.round(state.stArea)}m² ST</text>`;
+  })() : '';
 
   const svg = `
     <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Roof optimizer chart">
       <rect x="0" y="0" width="${width}" height="${height}" rx="18" fill="rgba(255,255,255,0.01)"></rect>
-      ${leftTicks}
-      ${rightTicks}
+      ${gridLines}
       <line x1="${pad.left}" y1="${pad.top + innerH}" x2="${width - pad.right}" y2="${pad.top + innerH}" stroke="rgba(23,33,38,0.38)" />
       <line x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${pad.top + innerH}" stroke="rgba(23,33,38,0.38)" />
-      <line x1="${width - pad.right}" y1="${pad.top}" x2="${width - pad.right}" y2="${pad.top + innerH}" stroke="rgba(23,33,38,0.18)" />
-      <line x1="${optX.toFixed(1)}" y1="${pad.top}" x2="${optX.toFixed(1)}" y2="${pad.top + innerH}" stroke="#b36b2b" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.7" />
-      <text x="${optX.toFixed(1)}" y="${pad.top - 6}" text-anchor="middle" font-size="10" fill="#b36b2b">x* (lowest cost)</text>
+      ${eqSvg}
+      ${selSvg}
       <path d="${pvPath}" fill="none" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
       <path d="${stPath}" fill="none" stroke="#8b5e3c" stroke-width="2.5" stroke-dasharray="7 4" stroke-linecap="round" stroke-linejoin="round" />
-      <path d="${co2Path}" fill="none" stroke="#3d8a6e" stroke-width="2" stroke-dasharray="3 3" stroke-linecap="round" stroke-linejoin="round" opacity="0.75" />
       ${xLabels}
       <text x="${pad.left + 4}" y="${height - 4}" text-anchor="start" font-size="11" fill="#67727a">← 100% Solar Thermal</text>
       <text x="${width - pad.right - 4}" y="${height - 4}" text-anchor="end" font-size="11" fill="#67727a">100% PV →</text>
-      <text x="${pad.left - 48}" y="${pad.top + innerH / 2}" text-anchor="middle" font-size="11" fill="#67727a" transform="rotate(-90 ${pad.left - 48} ${pad.top + innerH / 2})">Energy demand covered</text>
-      <text x="${width - pad.right + 58}" y="${pad.top + innerH / 2}" text-anchor="middle" font-size="11" fill="#3d8a6e" transform="rotate(90 ${width - pad.right + 58} ${pad.top + innerH / 2})">CO₂ avoided (t/y)</text>
-      <line x1="${pad.left + 10}" y1="${pad.top + 14}" x2="${pad.left + 28}" y2="${pad.top + 14}" stroke="#2e7d32" stroke-width="2.5" />
-      <text x="${pad.left + 34}" y="${pad.top + 18}" font-size="12" fill="#516069">PV → electricity coverage</text>
-      <line x1="${pad.left + 218}" y1="${pad.top + 14}" x2="${pad.left + 236}" y2="${pad.top + 14}" stroke="#8b5e3c" stroke-width="2.5" stroke-dasharray="5 3" />
-      <text x="${pad.left + 242}" y="${pad.top + 18}" font-size="12" fill="#516069">ST → heat coverage (of addressable load)</text>
-      <line x1="${pad.left + 518}" y1="${pad.top + 14}" x2="${pad.left + 536}" y2="${pad.top + 14}" stroke="#3d8a6e" stroke-width="2" stroke-dasharray="3 3" opacity="0.75" />
-      <text x="${pad.left + 542}" y="${pad.top + 18}" font-size="12" fill="#516069">CO₂ avoided</text>
+      <text x="${pad.left - 48}" y="${pad.top + innerH / 2}" text-anchor="middle" font-size="11" fill="#67727a" transform="rotate(-90 ${pad.left - 48} ${pad.top + innerH / 2})">% of total demand covered</text>
+      <line x1="${pad.left + 10}" y1="${pad.top + 22}" x2="${pad.left + 28}" y2="${pad.top + 22}" stroke="#2e7d32" stroke-width="2.5" />
+      <text x="${pad.left + 34}" y="${pad.top + 26}" font-size="12" fill="#516069">PV covers electricity demand</text>
+      <line x1="${pad.left + 236}" y1="${pad.top + 22}" x2="${pad.left + 254}" y2="${pad.top + 22}" stroke="#8b5e3c" stroke-width="2.5" stroke-dasharray="6 3" />
+      <text x="${pad.left + 260}" y="${pad.top + 26}" font-size="12" fill="#516069">ST covers heat demand</text>
+      <line x1="${pad.left + 420}" y1="${pad.top + 22}" x2="${pad.left + 438}" y2="${pad.top + 22}" stroke="#1565c0" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.7" />
+      <text x="${pad.left + 444}" y="${pad.top + 26}" font-size="12" fill="#516069">Equilibrium</text>
+      <line x1="${pad.left + 530}" y1="${pad.top + 22}" x2="${pad.left + 548}" y2="${pad.top + 22}" stroke="#b36b2b" stroke-width="2" />
+      <text x="${pad.left + 554}" y="${pad.top + 26}" font-size="12" fill="#516069">Selected</text>
     </svg>`;
   renderSvg(el, svg);
   $('optimizerCostBadge').textContent = `x* = ${Math.round(bestCost.x * 100)}% PV / ${fmt(bestCost.value, 0)} CHF/t`;
