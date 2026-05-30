@@ -2,7 +2,7 @@ const DEFAULTS = {
   electricityUse: 41150,
   heatUse: 189000,
   roofArea: 303,
-  stHeatPct: 11,
+  stHeatPct: 40,
   electricityMix: 'wwz',
   heatMethod: 'districtWood',
   newElectricityMix: 'wwz',
