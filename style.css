@@ -483,6 +483,40 @@ button.primary:hover { background: linear-gradient(180deg, #2b6340, #1a3d2b); }
 .chart-wrap { width: 100%; overflow-x: auto; }
 .chart-wrap svg { width: 100%; height: auto; display: block; }
 
+.summary-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.summary-strip-item {
+  border: 1px solid rgba(217, 209, 196, 0.9);
+  background: rgba(255, 255, 255, 0.82);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.summary-strip-item .label {
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.summary-strip-item .value {
+  color: var(--pine);
+  font-size: 19px;
+  font-weight: 760;
+  margin-top: 4px;
+}
+
+.summary-strip-item .sub {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 2px;
+}
+
 .two-charts {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
