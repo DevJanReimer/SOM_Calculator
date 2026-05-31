@@ -457,13 +457,13 @@ function axisTicks(max, count = 5, min = 0) {
   return Array.from({ length: count + 1 }, (_, i) => min + i * step);
 }
 
-function renderStackedBarChart(el, state, scenario) {
+function renderStackedBarChart(el, state, scenario, optimum) {
   const width = 860;
   const height = 440;
   const pad = { top: 24, right: 30, bottom: 54, left: 68 };
   const innerW = width - pad.left - pad.right;
   const innerH = height - pad.top - pad.bottom;
-  const optimized = findOptimalScenario(state).scenario;
+  const optimized = optimum.scenario;
   const selectedYear = Math.max(1, Math.min(Math.round(Number($('resultYear')?.value) || 1), Math.max(1, Math.round(state.horizonYears))));
   const manualYears = scenario.multiPeriod?.years ?? [];
   const optimizedYears = optimized.multiPeriod?.years ?? [];
@@ -474,13 +474,14 @@ function renderStackedBarChart(el, state, scenario) {
   const baseElec = scenario.baselineElectricity * scenario.gridEF / 1000;
   const baseHeat = scenario.baselineHeat * scenario.heatEF / 1000;
   const scenElec = (manualYear?.electricityResidual ?? 0) * scenario.newGridEF / 1000;
-  const scenPv = (manualYear?.pvPlantCO2 ?? 0) / 1000;
   const scenHeat = (manualYear?.heatResidual ?? 0) * scenario.newHeatEF / 1000;
-  const scenSt = (manualYear?.stPlantCO2 ?? 0) / 1000;
+  // Annualise embodied carbon so PV/ST segments are visible in every year
+  const scenPv = (scenario.multiPeriod?.pvPlantCO2 ?? 0) / horizon / 1000;
+  const scenSt = (scenario.multiPeriod?.stPlantCO2 ?? 0) / horizon / 1000;
   const optElec = (optimizedYear?.electricityResidual ?? 0) * optimized.newGridEF / 1000;
-  const optPv = (optimizedYear?.pvPlantCO2 ?? 0) / 1000;
   const optHeat = (optimizedYear?.heatResidual ?? 0) * optimized.newHeatEF / 1000;
-  const optSt = (optimizedYear?.stPlantCO2 ?? 0) / 1000;
+  const optPv = (optimized.multiPeriod?.pvPlantCO2 ?? 0) / horizon / 1000;
+  const optSt = (optimized.multiPeriod?.stPlantCO2 ?? 0) / horizon / 1000;
   const baseTotal = baseElec + baseHeat;
   const scenHeatTotal = scenHeat + scenSt;
   const scenElecTotal = scenHeatTotal + scenElec;
@@ -692,11 +693,21 @@ function renderLineChart(el, series, labels, options = {}) {
     return `<circle cx="${x}" cy="${y}" r="2.6" fill="${s.color ?? palette[si % palette.length]}" opacity="0.9"></circle>`;
   })).join('');
 
+  const lWidth = 160;
+  const lStart = Math.max(pad.left, width - series.length * lWidth - pad.right);
   const legend = series.map((s, i) => `
-    <g transform="translate(${width - 260 + i * 130}, 10)">
+    <g transform="translate(${lStart + i * lWidth}, 10)">
       <rect x="0" y="0" width="12" height="12" rx="3" fill="${s.color ?? palette[i % palette.length]}"></rect>
       <text x="18" y="10" font-size="12" fill="#516069">${s.label}</text>
     </g>`).join('');
+
+  let paybackAnnotation = '';
+  if (options.paybackYearIndex !== undefined && options.paybackYearIndex >= 0 && options.paybackYearIndex < labels.length) {
+    const pbX = pad.left + (options.paybackYearIndex / Math.max(labels.length - 1, 1)) * innerW;
+    paybackAnnotation = `
+      <line x1="${pbX}" y1="${pad.top}" x2="${pbX}" y2="${pad.top + innerH}" stroke="rgba(179,107,43,0.6)" stroke-width="1.5" stroke-dasharray="5 4" />
+      <text x="${pbX + 5}" y="${pad.top + 14}" font-size="11" fill="#b36b2b">NPV+ Jahr ${labels[options.paybackYearIndex]}</text>`;
+  }
 
   const svg = `
     <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Lifecycle chart">
@@ -704,7 +715,7 @@ function renderLineChart(el, series, labels, options = {}) {
       <line x1="${pad.left}" y1="${pad.top + innerH}" x2="${width - pad.right}" y2="${pad.top + innerH}" stroke="rgba(23,33,38,0.38)" />
       <line x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${pad.top + innerH}" stroke="rgba(23,33,38,0.38)" />
       ${minValue < 0 ? `<line x1="${pad.left}" y1="${zeroY}" x2="${width - pad.right}" y2="${zeroY}" stroke="rgba(23,33,38,0.22)" stroke-dasharray="4 3" />` : ''}
-      ${fills}${paths}${dots}${legend}${xTicks}
+      ${fills}${paths}${paybackAnnotation}${dots}${legend}${xTicks}
     </svg>`;
   renderSvg(el, svg);
 }
@@ -728,14 +739,14 @@ function findOptimalScenario(state) {
   return best ?? { x: 0, y: 0, scenario: annualScenario(state, 0, { pvArea: 0, stArea: 0 }) };
 }
 
-function renderOptimizerChart(el, state) {
+function renderOptimizerChart(el, state, optimum) {
   const width = 860;
   const height = 460;
   const pad = { top: 24, right: 24, bottom: 44, left: 56 };
   const innerW = width - pad.left - pad.right;
   const innerH = height - pad.top - pad.bottom;
   const points = [];
-  const best = findOptimalScenario(state);
+  const best = optimum;
   let bestObjective = { x: 0, y: 0, value: Infinity };
   let bestCo2 = { x: 0, y: 0, value: -Infinity };
 
@@ -821,9 +832,8 @@ function renderOptimizerChart(el, state) {
   }
 }
 
-function renderSummaryTable(state, scenario, lifecycle) {
+function renderSummaryTable(state, scenario, lifecycle, optimum) {
   const n = lifecycle.years.length;
-  const optimum = findOptimalScenario(state);
   const optimized = optimum.scenario;
   const pvFirst = lifecycle.pvGeneration[0];
   const pvLast = lifecycle.pvGeneration[n - 1];
@@ -860,10 +870,9 @@ function renderSummaryTable(state, scenario, lifecycle) {
   tbody.innerHTML = rows.map(([label, value]) => `<tr><td>${label}</td><td>${value}</td></tr>`).join('');
 }
 
-function renderEmissionsComparison(state, scenario) {
+function renderEmissionsComparison(state, scenario, optimum) {
   const el = $('emissionsComparison');
   if (!el) return;
-  const optimum = findOptimalScenario(state);
   const optimized = optimum.scenario;
   const years = Math.max(1, Math.round(state.horizonYears));
   const baseline = scenario.baselineCO2Total;
@@ -885,9 +894,9 @@ function renderEmissionsComparison(state, scenario) {
   `).join('');
 }
 
-function renderKpis(state, scenario, lifecycle) {
+function renderKpis(state, scenario, lifecycle, optimum) {
   const n = lifecycle.years.length;
-  const best = findOptimalScenario(state);
+  const best = optimum;
   const lcoe = (state.pvArea > 0 && state.pvCapexTotal > 0)
     ? ((state.pvCapexPerM2 * state.pvArea) / Math.max(1, n)) / Math.max(scenario.pvGeneration, 1e-6)
     : NaN;
@@ -904,6 +913,28 @@ function renderKpis(state, scenario, lifecycle) {
   $('kpiCapex').textContent = `${fmt(scenario.capex, 0)} CHF`;
 }
 
+function renderEmissionsTimelineChart(el, state, scenario, optimum) {
+  if (!el) return;
+  const years = scenario.multiPeriod?.years ?? [];
+  if (!years.length) return;
+  const yearLabels = years.map((_, i) => String(i + 1));
+  const baselinePerYear = years.map(() => scenario.baselineCO2 / 1000);
+  const manualPerYear = years.map((y) => y.yearCO2 / 1000);
+  const optYears = optimum.scenario.multiPeriod?.years ?? [];
+  const optimizedPerYear = optYears.length ? optYears.map((y) => y.yearCO2 / 1000) : years.map(() => 0);
+  renderLineChart(el, [
+    { label: 'Baseline (tCO₂/y)', values: baselinePerYear, color: '#6a8b6f' },
+    { label: 'Manuell (tCO₂/y)', values: manualPerYear, color: '#5a7680' },
+    { label: 'Z-optimiert (tCO₂/y)', values: optimizedPerYear, color: '#3d5b43' },
+  ], yearLabels, { tickDecimals: 2 });
+}
+
+let _refreshRAF = null;
+function scheduleRefresh() {
+  if (_refreshRAF) cancelAnimationFrame(_refreshRAF);
+  _refreshRAF = requestAnimationFrame(() => { _refreshRAF = null; refresh(); });
+}
+
 function refresh() {
   const state = readState();
   syncRanges(state);
@@ -913,16 +944,18 @@ function refresh() {
   const optimum = findOptimalScenario(state);
   const lifecycle = lifecycleSeries(state);
   const optimizedLifecycle = lifecycleSeries(state, { pvArea: optimum.x, stArea: optimum.y });
+  const pbYear = optimizedLifecycle.cumulativeNpv.findIndex((v) => v >= 0);
 
-  renderStackedBarChart($('snapshotChart'), state, scenario);
+  renderStackedBarChart($('snapshotChart'), state, scenario, optimum);
+  renderEmissionsTimelineChart($('emissionsTimelineChart'), state, scenario, optimum);
   renderPvLifecycleChart($('pvLifecycleChart'), state, lifecycle);
   renderLineChart($('cashflowChart'), [
-    { label: 'Z-optimized NPV (CHF)', values: optimizedLifecycle.cumulativeNpv, color: '#3d5b43' },
-  ], lifecycle.years.map(String), { tickDecimals: 0 });
-  renderKpis(state, scenario, lifecycle);
-  renderSummaryTable(state, scenario, lifecycle);
-  renderEmissionsComparison(state, scenario);
-  renderOptimizerChart($('optimizerChart'), state);
+    { label: 'Z-optimiert NPV (CHF)', values: optimizedLifecycle.cumulativeNpv, color: '#3d5b43' },
+  ], lifecycle.years.map(String), { tickDecimals: 0, paybackYearIndex: pbYear });
+  renderKpis(state, scenario, lifecycle, optimum);
+  renderSummaryTable(state, scenario, lifecycle, optimum);
+  renderEmissionsComparison(state, scenario, optimum);
+  renderOptimizerChart($('optimizerChart'), state, optimum);
 }
 
 function syncResultSliders(state) {
@@ -930,6 +963,7 @@ function syncResultSliders(state) {
     ['rPvArea', 'pvArea', (v) => fmt(v, 0), 'rPvAreaValue'],
     ['rStArea', 'stArea', (v) => fmt(v, 0), 'rStAreaValue'],
     ['rPvSelfShare', 'pvSelfShare', (v) => pct(v * 100, 0), 'rPvSelfShareValue'],
+    ['rOptimizationWeight', 'optimizationWeight', (v) => pct(v * 100, 0), 'rOptimizationWeightValue'],
   ];
   map.forEach(([rid, key, format, rvid]) => {
     const el = $(rid);
@@ -1125,7 +1159,7 @@ function bindEvents() {
     if (el) {
       el.addEventListener('input', () => {
         updateBuildableAreaLimit();
-        if (document.querySelector('.shell').classList.contains('show-results')) refresh();
+        if (document.querySelector('.shell').classList.contains('show-results')) scheduleRefresh();
       });
     }
   });
@@ -1204,6 +1238,7 @@ function bindEvents() {
     ['rPvArea', 'pvArea', (v) => fmt(v, 0), 'rPvAreaValue'],
     ['rStArea', 'stArea', (v) => fmt(v, 0), 'rStAreaValue'],
     ['rPvSelfShare', 'pvSelfShare', (v) => pct(v * 100, 0), 'rPvSelfShareValue'],
+    ['rOptimizationWeight', 'optimizationWeight', (v) => pct(v * 100, 0), 'rOptimizationWeightValue'],
   ].forEach(([rid, iid, format, rvid]) => {
     const el = $(rid);
     if (!el) return;
@@ -1225,7 +1260,7 @@ function bindEvents() {
       } else {
         $(rvid).textContent = format(Number(el.value));
       }
-      refresh();
+      scheduleRefresh();
     });
   });
 }
