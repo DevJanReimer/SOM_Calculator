@@ -703,10 +703,21 @@ function renderLineChart(el, series, labels, options = {}) {
 
   let paybackAnnotation = '';
   if (options.paybackYearIndex !== undefined && options.paybackYearIndex >= 0 && options.paybackYearIndex < labels.length) {
-    const pbX = pad.left + (options.paybackYearIndex / Math.max(labels.length - 1, 1)) * innerW;
+    const pbIdx = options.paybackYearIndex;
+    const npvValues = series[0]?.values ?? [];
+    // Linearly interpolate exact zero-crossing between pbIdx-1 and pbIdx
+    let fracIdx = pbIdx;
+    if (pbIdx > 0 && npvValues[pbIdx - 1] < 0 && npvValues[pbIdx] >= 0) {
+      const v0 = npvValues[pbIdx - 1];
+      const v1 = npvValues[pbIdx];
+      fracIdx = pbIdx - 1 + (-v0) / (v1 - v0);
+    }
+    const pbX = pad.left + (fracIdx / Math.max(labels.length - 1, 1)) * innerW;
+    const pbYear = (fracIdx + 1).toFixed(1);
     paybackAnnotation = `
       <line x1="${pbX}" y1="${pad.top}" x2="${pbX}" y2="${pad.top + innerH}" stroke="rgba(179,107,43,0.6)" stroke-width="1.5" stroke-dasharray="5 4" />
-      <text x="${pbX + 5}" y="${pad.top + 14}" font-size="11" fill="#b36b2b">NPV+ Jahr ${labels[options.paybackYearIndex]}</text>`;
+      <circle cx="${pbX}" cy="${zeroY}" r="4" fill="#b36b2b" />
+      <text x="${pbX + 8}" y="${zeroY - 6}" font-size="11" fill="#b36b2b">Break-even Jahr ${pbYear}</text>`;
   }
 
   const svg = `
