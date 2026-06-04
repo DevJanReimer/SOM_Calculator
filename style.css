@@ -389,6 +389,7 @@ input[type="range"] {
   align-items: center;
   gap: 12px;
   padding: 12px;
+  cursor: pointer;
   border-radius: 16px;
   border: 1px solid rgba(217, 209, 196, 0.9);
   background: rgba(255, 255, 255, 0.76);
@@ -397,6 +398,9 @@ input[type="range"] {
 .toggle input { width: 18px; height: 18px; accent-color: var(--moss); }
 .toggle b { display: block; }
 .toggle span { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+[hidden] { display: none !important; }
+#batteryFields { grid-column: 1 / -1; }
 
 .actions {
   display: flex;
@@ -480,8 +484,25 @@ button.primary:hover { background: linear-gradient(180deg, #2b6340, #1a3d2b); }
 
 .chart-card h3 { font-size: 22px; }
 .chart-note { color: var(--muted); font-size: 12px; }
-.chart-wrap { width: 100%; overflow-x: auto; }
+.chart-wrap { position: relative; width: 100%; overflow-x: auto; }
 .chart-wrap svg { width: 100%; height: auto; display: block; }
+.chart-tooltip {
+  position: fixed;
+  z-index: 4;
+  min-width: 130px;
+  padding: 8px 10px;
+  border: 1px solid rgba(217, 209, 196, 0.95);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 22px rgba(23, 33, 38, 0.14);
+  color: var(--ink);
+  font-size: 11px;
+  line-height: 1.45;
+  pointer-events: none;
+}
+.chart-tooltip b { display: block; margin-bottom: 3px; }
+.chart-tooltip-row { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.chart-tooltip-swatch { width: 8px; height: 8px; border-radius: 2px; flex: 0 0 auto; }
 
 .summary-strip {
   display: grid;

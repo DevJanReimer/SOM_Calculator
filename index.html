@@ -148,7 +148,6 @@
               <input id="buildAreaLimit" type="number" value="303" min="0" step="1">
               <div class="field-hint">Example: enter 150 to find the optimum with x + y <= 150 m².</div>
             </div>
-            <div class="field"><label for="usefulHeatLoad">Useful heat load for solar thermal (kWh/y)</label><input id="usefulHeatLoad" type="number" value="20600" min="0" step="100"></div>
           </div>
 
           <!-- Current vs New energy mix -->
@@ -183,7 +182,6 @@
                 <option value="gas">Natural gas</option>
                 <option value="pellets">Wood pellets</option>
                 <option value="districtMix">District heat mix</option>
-                <option value="hp">Heat pump</option>
               </select>
             </div>
             <div class="field">
@@ -194,18 +192,17 @@
                 <option value="gas">Natural gas</option>
                 <option value="pellets">Wood pellets</option>
                 <option value="districtMix">District heat mix</option>
-                <option value="hp">Heat pump</option>
               </select>
             </div>
+          </div>
 
-            <div class="field"><label for="currentPvArea">PV area (m²)</label><div class="range-row"><input id="currentPvArea" type="range" min="0" max="303" step="1" value="0"><div class="range-value" id="currentPvAreaValue">0</div></div></div>
+          <div class="grid-2">
             <div class="field">
               <label for="pvArea">Manual PV area x (m²)</label>
               <div class="range-row"><input id="pvArea" type="range" min="0" max="303" step="1" value="120"><div class="range-value" id="pvAreaValue">120</div></div>
               <div class="roof-pct-bar" id="pvRoofBar"><div class="roof-pct-fill roof-pct-pv" id="pvRoofFill"></div></div>
             </div>
 
-            <div class="field"><label for="currentStArea">Solar-thermal area (m²)</label><div class="range-row"><input id="currentStArea" type="range" min="0" max="303" step="1" value="0"><div class="range-value" id="currentStAreaValue">0</div></div></div>
             <div class="field">
               <label for="stArea">Manual solar-thermal area y (m²)</label>
               <div class="range-row"><input id="stArea" type="range" min="0" max="303" step="1" value="0"><div class="range-value" id="stAreaValue">0</div></div>
@@ -218,18 +215,48 @@
           </div>
 
           <div class="grid-3">
-            <div class="field"><label for="electricityPrice">Electricity price (CHF/kWh)</label><input id="electricityPrice" type="number" value="0.30" min="0" step="0.01"></div>
+            <div class="field"><label for="electricityPrice">Electricity price (CHF/kWh)</label><input id="electricityPrice" type="number" value="0.208" min="0" step="0.001"></div>
             <div class="field"><label for="heatPrice">Heat price (CHF/kWh)</label><input id="heatPrice" type="number" value="0.068" min="0" step="0.001"></div>
             <div class="field"><label for="feedInTariff">Feed-in credit (CHF/kWh)</label><input id="feedInTariff" type="number" value="0.11" min="0" step="0.01"></div>
           </div>
 
           <div class="grid-2">
             <div class="field">
-              <label for="optimizationWeight">Weighting factor w: cost vs. CO2</label>
+              <label for="optimizationWeight">Weighting factor w: NPV vs. CO2</label>
               <div class="range-row"><input id="optimizationWeight" type="range" min="0" max="1" step="0.05" value="0.5"><div class="range-value" id="optimizationWeightValue">50%</div></div>
-              <div class="field-hint">w = 0 optimizes CO2, w = 1 optimizes cost, w = 0.5 weights both equally.</div>
+              <div class="field-hint">w = 0 minimizes CO2, w = 1 maximizes NPV, w = 0.5 weights both equally.</div>
             </div>
             <div class="field"><label for="horizonYears">N: depreciation period (years)</label><input id="horizonYears" type="number" value="25" min="1" step="1"></div>
+          </div>
+
+          <div class="grid-2">
+            <label class="toggle" for="budgetEnabled"><input id="budgetEnabled" type="checkbox"><div><b>Enable investment budget</b><span>Click to enter the maximum amount available for the initial investment.</span></div></label>
+            <div class="field" id="budgetLimitField" hidden>
+              <label for="budgetLimit">Maximum initial investment budget (CHF)</label>
+              <input id="budgetLimit" type="number" value="100000" min="0" step="1000">
+              <div class="field-hint">Applies to both manual and optimized scenarios: PV + solar thermal + optional battery investment ≤ budget.</div>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <label class="toggle" for="batteryEnabled"><input id="batteryEnabled" type="checkbox"><div><b>Include battery storage</b><span>Click to enter total battery cost, annual degradation, and calibration factor.</span></div></label>
+            <div id="batteryFields" class="grid-3" hidden>
+              <div class="field"><label for="batteryCostInput">K_Batt_Input: total battery cost (CHF)</label><input id="batteryCostInput" type="number" value="16940" min="0" step="100"></div>
+              <div class="field"><label for="batteryDegradation">d_Batt: battery degradation (%/year)</label><input id="batteryDegradation" type="number" value="2" min="0" max="100" step="0.1"></div>
+              <div class="field">
+                <label for="batteryGamma">gamma: battery calibration factor</label>
+                <input id="batteryGamma" type="number" value="0.5" min="0" max="1" step="0.05">
+                <div class="field-hint">Value from 0 to 1. Higher gamma gives the battery a stronger effect on PV self-consumption. Effective gamma = gamma × q_PV.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <label class="toggle" for="inflationEnabled"><input id="inflationEnabled" type="checkbox"><div><b>Enable inflation factor</b><span>Increases electricity, heating, and maintenance costs annually.</span></div></label>
+            <div class="field" id="inflationRateField" hidden>
+              <label for="inflationRate">Annual inflation factor (%)</label>
+              <input id="inflationRate" type="number" value="2" min="0" step="0.1">
+            </div>
           </div>
 
           <div class="grid-2">
@@ -238,41 +265,17 @@
           </div>
 
           <div class="grid-2">
-            <div class="field"><label for="pvSelfShare">PV self-consumption share</label><div class="range-row"><input id="pvSelfShare" type="range" min="0.2" max="0.95" step="0.05" value="0.4"><div class="range-value" id="pvSelfShareValue">40%</div></div></div>
-            <div class="field"><label for="stUtilization">Usable fraction</label><div class="range-row"><input id="stUtilization" type="range" min="0.2" max="0.9" step="0.05" value="0.5"><div class="range-value" id="stUtilizationValue">50%</div></div></div>
+            <div class="field"><label for="pvSelfShare">sc_Regler: PV self-consumption setting</label><div class="range-row"><input id="pvSelfShare" type="range" min="0.2" max="0.95" step="0.05" value="0.4"><div class="range-value" id="pvSelfShareValue">40%</div></div></div>
+            <div class="field">
+              <label for="stUtilization">Minimum solar-thermal usable fraction</label>
+              <div class="range-row"><input id="stUtilization" type="range" min="0.2" max="0.9" step="0.05" value="0.6"><div class="range-value" id="stUtilizationValue">60%</div></div>
+              <div class="field-hint">Usable share is 100% at 1 m² and declines to this minimum at full roof coverage.</div>
+            </div>
           </div>
 
           <div class="grid-2">
             <div class="field"><label for="pvDegradation">PV degradation (%/y)</label><div class="range-row"><input id="pvDegradation" type="range" min="0" max="2" step="0.1" value="0.7"><div class="range-value" id="pvDegradationValue">0.7%</div></div></div>
             <div class="field"><label for="stDegradation">ST degradation (%/y)</label><div class="range-row"><input id="stDegradation" type="range" min="0" max="2" step="0.1" value="0.5"><div class="range-value" id="stDegradationValue">0.5%</div></div></div>
-          </div>
-
-          <!-- Investment costs with smart defaults -->
-          <div class="grid-3">
-            <div class="field">
-              <label for="pvCapexTotal">PV investment (CHF)</label>
-              <input id="pvCapexTotal" type="number" value="54000" min="0" step="500" data-auto="true">
-              <div class="field-hint" id="pvCapexHint">120 m² × 450 CHF/m²</div>
-              <button type="button" class="link-btn" id="pvCapexResetBtn">Reset to area default</button>
-            </div>
-            <div class="field">
-              <label for="stCapexTotal">Solar thermal investment (CHF)</label>
-              <input id="stCapexTotal" type="number" value="0" min="0" step="500" data-auto="true">
-              <div class="field-hint" id="stCapexHint">No ST area selected</div>
-              <button type="button" class="link-btn" id="stCapexResetBtn">Reset to area default</button>
-            </div>
-            <div class="field">
-              <label for="hpCapex">Heat pump investment (CHF)</label>
-              <input id="hpCapex" type="number" value="85000" min="0" step="500">
-              <div class="field-hint" id="hpCapexHint">Manual entry or estimate below</div>
-              <button type="button" class="link-btn" id="hpCapexEstBtn">Estimate from heat demand</button>
-            </div>
-          </div>
-
-          <div class="grid-3">
-            <div class="toggle"><input id="hpEnabled" type="checkbox"><div><b>Enable heat pump swap</b><span>Converts remaining heat demand to electricity at the selected COP.</span></div></div>
-            <div class="field"><label for="cop">Heat pump COP</label><input id="cop" type="number" value="3.5" min="1" step="0.1"></div>
-            <div class="field"><label for="omPct">OPEX rate (% of CAPEX / y)</label><input id="omPct" type="number" value="1" min="0" step="0.1"></div>
           </div>
 
           <div id="roofWarning" class="warnings">PV and solar thermal exceed the available roof area.</div>
@@ -299,7 +302,7 @@
                 <div class="field"><label for="co2DistrictMix">District heat mix (CH avg)</label><input id="co2DistrictMix" type="number" value="0.066" min="0" step="0.001"></div>
               </div>
 
-              <div class="expert-section-label">Installation cost rates (used for auto-defaults)</div>
+              <div class="expert-section-label">Installation cost rates used by manual and optimized scenarios</div>
               <div class="grid-2">
                 <div class="field"><label for="pvCapexPerM2">PV installed cost rate (CHF/m²)</label><input id="pvCapexPerM2" type="number" value="450" min="0" step="10"></div>
                 <div class="field"><label for="stCapexPerM2">Solar thermal cost rate (CHF/m²)</label><input id="stCapexPerM2" type="number" value="900" min="0" step="10"></div>
@@ -349,7 +352,7 @@
         <article class="kpi"><div class="label">PV LCOE</div><div class="value" id="kpiLcoe">—</div><div class="sub">CHF per kWh</div></article>
         <article class="kpi"><div class="label">Self-sufficiency</div><div class="value" id="kpiSelfSuff">—</div><div class="sub">electricity covered by on-site PV</div></article>
         <article class="kpi"><div class="label">Future emissions total</div><div class="value" id="kpiCarbonPb">—</div><div class="sub">E total over 25 years</div></article>
-        <article class="kpi"><div class="label">Total CAPEX</div><div class="value" id="kpiCapex">—</div><div class="sub">CHF</div></article>
+        <article class="kpi"><div class="label">Optimized initial investment</div><div class="value" id="kpiCapex">—</div><div class="sub">Z-optimized scenario · CHF</div></article>
       </div>
 
       <div class="card adjust-panel">
@@ -387,7 +390,17 @@
           <div id="pvLifecycleChart" class="chart-wrap"></div>
         </div>
         <div class="card chart-card">
-          <header><div><h3>Discounted cashflow</h3><div class="chart-note">NPV of the current Z-optimized recommendation.</div></div></header>
+          <header>
+            <div><h3>Discounted cashflow</h3><div class="chart-note" id="cashflowChartNote">NPV of the current Z-optimized recommendation.</div></div>
+            <div class="field">
+              <label for="cashflowScenario">NPV scenario</label>
+              <select id="cashflowScenario">
+                <option value="optimized" selected>Z-optimized</option>
+                <option value="manual">Manual</option>
+                <option value="both">Both</option>
+              </select>
+            </div>
+          </header>
           <div id="cashflowChart" class="chart-wrap"></div>
         </div>
       </div>
@@ -419,9 +432,9 @@
               <ul>
                 <li>Baseline CO₂ = electricity use × current grid factor + heat use × current heat-carrier factor.</li>
                 <li>Scenario CO₂ = residual electricity × new grid factor + residual heat × new heat-carrier factor.</li>
+                <li>PV and solar-thermal plant emissions are calculated annually from degraded energy production × the respective kgCO₂e/kWh factor.</li>
                 <li>PV production is split by the self-consumption share: sc reduces grid purchases, and (1 - sc) receives the feed-in credit.</li>
                 <li>Solar thermal is capped by the declared useful heat load and degrades annually.</li>
-                <li>If heat pump swap is enabled, remaining heat demand becomes electric demand at the selected COP.</li>
                 <li>NPV discounts yearly net cashflows. Abatement cost annualizes CAPEX over the horizon.</li>
                 <li>PV lifecycle chart shows year-by-year kWh output; the amber dashed line marks when cumulative NPV turns positive.</li>
                 <li>CO₂ factors from Swiss LCA data (WWZ mix: 0.078 kgCO₂e/kWh; wood chips: 0.025 kgCO₂e/kWh). Adjustable via Expert settings.</li>
