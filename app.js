@@ -8,7 +8,8 @@ const DEFAULTS = {
   newElectricityMix: 'wwz',
   newHeatMethod: 'districtWood',
   electricityPrice: 0.208,
-  heatPrice: 0.068,
+  electricityFixedCost: 127.08,
+  heatPrice: 0.076,
   feedInTariff: 0.11,
   optimizationWeight: 0.5,
   budgetEnabled: false,
@@ -70,7 +71,7 @@ const pct = (n, d = 0) => Number.isFinite(n) ? `${fmt(n, d)}%` : '—';
 const ids = [
   'electricityUse', 'heatUse', 'roofArea', 'buildAreaLimit',
   'electricityMix', 'heatMethod', 'newElectricityMix', 'newHeatMethod',
-  'electricityPrice', 'heatPrice', 'feedInTariff',
+  'electricityPrice', 'electricityFixedCost', 'heatPrice', 'feedInTariff',
   'optimizationWeight', 'budgetEnabled', 'budgetLimit',
   'batteryEnabled', 'batteryCostInput', 'batteryDegradation', 'batteryGamma',
   'inflationEnabled', 'inflationRate',
@@ -273,7 +274,7 @@ function multiPeriodScenario(state, pvAreaInput, stAreaInput) {
   const y = Math.max(0, Math.min(stAreaInput, areaLimit - x, yHeatLimit));
   const baselineElectricity = Math.max(state.electricityUse, 0);
   const baselineHeat = Math.max(state.heatUse, 0);
-  const baselineCost = baselineElectricity * state.electricityPrice + baselineHeat * state.heatPrice;
+  const baselineCost = baselineElectricity * state.electricityPrice + baselineHeat * state.heatPrice + Math.max(0, state.electricityFixedCost);
   const baselineCO2 = baselineElectricity * gridEF + baselineHeat * heatEF;
   const pvCapex = x * Math.max(0, state.pvCapexPerM2);
   const stCapex = y * Math.max(0, state.stCapexPerM2);
@@ -300,9 +301,10 @@ function multiPeriodScenario(state, pvAreaInput, stAreaInput) {
       ? Math.pow(1 + Math.max(0, state.inflationRate) / 100, yearIndex)
       : 1;
     const electricityPrice = state.electricityPrice * inflationFactor;
+    const electricityFixedCost = Math.max(0, state.electricityFixedCost) * inflationFactor;
     const heatPrice = state.heatPrice * inflationFactor;
     const maintenance = (pvMaintenance + stMaintenance) * inflationFactor;
-    const yearBaselineCost = baselineElectricity * electricityPrice + baselineHeat * heatPrice;
+    const yearBaselineCost = baselineElectricity * electricityPrice + baselineHeat * heatPrice + electricityFixedCost;
     const pvGeneration = x * pvFactor * qPv;
     const selfConsumptionShare = dynamicSelfConsumptionShare(state, x, Math.max(0, state.roofArea), pvFactor, batteryFactor);
     const pvPotentialSelfConsumption = pvGeneration * selfConsumptionShare;
@@ -315,6 +317,7 @@ function multiPeriodScenario(state, pvAreaInput, stAreaInput) {
     const heatResidual = Math.max(0, baselineHeat - stGeneration);
     const investment = yearIndex === 0 ? pvCapex + stCapex + batteryCapex : 0;
     const operatingCost = maintenance
+      + electricityFixedCost
       + electricityResidual * electricityPrice
       + heatResidual * heatPrice
       - pvExport * state.feedInTariff;
@@ -352,6 +355,7 @@ function multiPeriodScenario(state, pvAreaInput, stAreaInput) {
       selfConsumptionShare,
       inflationFactor,
       electricityPrice,
+      electricityFixedCost,
       heatPrice,
       baselineCost: yearBaselineCost,
       pvGeneration,
@@ -435,7 +439,7 @@ function annualScenario(state, yearIndex = 0, overrides = {}) {
   const baselineElectricity = Math.max(state.electricityUse, 0);
   const baselineHeat = Math.max(state.heatUse, 0);
   const baselineCO2 = baselineElectricity * gridEF + baselineHeat * heatEF;
-  const baselineCost = baselineElectricity * state.electricityPrice + baselineHeat * state.heatPrice;
+  const baselineCost = baselineElectricity * state.electricityPrice + baselineHeat * state.heatPrice + Math.max(0, state.electricityFixedCost);
 
   const pvGeneration = pvArea * state.pvYield * pvFactor;
   const pvPotentialSelf = pvGeneration * state.pvSelfShare;
@@ -453,7 +457,7 @@ function annualScenario(state, yearIndex = 0, overrides = {}) {
   const heatResidual = heatAfterThermal;
 
   const scenarioCO2 = electricityResidual * newGridEF + heatResidual * newHeatEF;
-  const scenarioCost = electricityResidual * state.electricityPrice + heatResidual * state.heatPrice - pvExport * state.feedInTariff;
+  const scenarioCost = Math.max(0, state.electricityFixedCost) + electricityResidual * state.electricityPrice + heatResidual * state.heatPrice - pvExport * state.feedInTariff;
   const savings = baselineCost - scenarioCost;
 
   const pvCapex = pvArea * state.pvCapexPerM2;
@@ -1070,7 +1074,8 @@ function loadRathausBaseline() {
     electricityMix: 'wwz',
     heatMethod: 'districtWood',
     electricityPrice: 0.208,
-    heatPrice: 0.068,
+    electricityFixedCost: 127.08,
+    heatPrice: 0.076,
     pvArea: 0,
     stArea: 0,
   };
@@ -1211,7 +1216,7 @@ function bindEvents() {
     'inflationRate',
     'discountRate', 'horizonYears', 'pvMaintenancePerM2', 'stMaintenancePerM2',
     'pvCapexPerM2', 'stCapexPerM2', 'efPvPlant', 'efStPlant',
-    'electricityPrice', 'heatPrice', 'feedInTariff',
+    'electricityPrice', 'electricityFixedCost', 'heatPrice', 'feedInTariff',
   ].forEach((id) => {
     const el = $(id);
     if (el) {
