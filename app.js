@@ -33,8 +33,8 @@ const DEFAULTS = {
   stDegradation: 0.5,
   pvCapexPerM2: 450,
   stCapexPerM2: 900,
-  pvMaintenancePerM2: 4.5,
-  stMaintenancePerM2: 9,
+  pvMaintenancePerM2: 7,
+  stMaintenancePerM2: 6,
   co2Wwz: 0.078,        // WWZ supplier-specific (from Rathaus Excel)
   co2Swiss: 0.125,      // KBOB 45.020 CH-Verbrauchermix
   co2Hydro: 0.012,      // KBOB 45.016 Wasserkraft

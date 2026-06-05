@@ -197,29 +197,23 @@
                 <option value="districtMix">District heat mix</option>
               </select>
             </div>
-          </div>
 
-          <div class="manual-settings-group">
-            <div class="section-heading">
-              <h3>Manual comparison scenario</h3>
-              <p>Only these two area controls define the manual scenario.</p>
+            <div class="scenario-col-label" style="grid-column:1/-1;margin-top:6px;padding-top:10px;border-top:1px solid rgba(217,209,196,0.7);">Manual comparison scenario</div>
+
+            <div class="field">
+              <label for="pvArea">Manual PV area x (m²)</label>
+              <div class="range-row"><input id="pvArea" type="range" min="0" max="303" step="1" value="120"><div class="range-value" id="pvAreaValue">120</div></div>
+              <div class="roof-pct-bar" id="pvRoofBar"><div class="roof-pct-fill roof-pct-pv" id="pvRoofFill"></div></div>
             </div>
-            <div class="grid-2">
-              <div class="field">
-                <label for="pvArea">Manual PV area x (m²)</label>
-                <div class="range-row"><input id="pvArea" type="range" min="0" max="303" step="1" value="120"><div class="range-value" id="pvAreaValue">120</div></div>
-                <div class="roof-pct-bar" id="pvRoofBar"><div class="roof-pct-fill roof-pct-pv" id="pvRoofFill"></div></div>
-              </div>
 
-              <div class="field">
-                <label for="stArea">Manual solar-thermal area y (m²)</label>
-                <div class="range-row"><input id="stArea" type="range" min="0" max="303" step="1" value="0"><div class="range-value" id="stAreaValue">0</div></div>
-                <div class="roof-pct-bar" id="stRoofBar">
-                  <div class="roof-pct-fill roof-pct-pv" id="stPvFill"></div>
-                  <div class="roof-pct-fill roof-pct-st" id="stStFill"></div>
-                </div>
-                <div class="roof-usage-label" id="roofUsageLabel"></div>
+            <div class="field">
+              <label for="stArea">Manual solar-thermal area y (m²)</label>
+              <div class="range-row"><input id="stArea" type="range" min="0" max="303" step="1" value="0"><div class="range-value" id="stAreaValue">0</div></div>
+              <div class="roof-pct-bar" id="stRoofBar">
+                <div class="roof-pct-fill roof-pct-pv" id="stPvFill"></div>
+                <div class="roof-pct-fill roof-pct-st" id="stStFill"></div>
               </div>
+              <div class="roof-usage-label" id="roofUsageLabel"></div>
             </div>
           </div>
 
@@ -328,8 +322,8 @@
               </div>
               <div class="expert-section-label">Annual maintenance costs (CHF/m²/year)</div>
               <div class="grid-2">
-                <div class="field"><label for="pvMaintenancePerM2">M_PV: PV maintenance</label><input id="pvMaintenancePerM2" type="number" value="4.5" min="0" step="0.5"></div>
-                <div class="field"><label for="stMaintenancePerM2">M_ST: solar thermal maintenance</label><input id="stMaintenancePerM2" type="number" value="9" min="0" step="0.5"></div>
+                <div class="field"><label for="pvMaintenancePerM2">M_PV: PV maintenance</label><input id="pvMaintenancePerM2" type="number" value="7" min="0" step="0.5"></div>
+                <div class="field"><label for="stMaintenancePerM2">M_ST: solar thermal maintenance</label><input id="stMaintenancePerM2" type="number" value="6" min="0" step="0.5"></div>
               </div>
               <div class="expert-section-label">Specific energy yields (kWh/m²/year)</div>
               <div class="grid-2">
