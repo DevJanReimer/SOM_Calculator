@@ -336,15 +336,15 @@ function multiPeriodScenario(state, pvAreaInput, stAreaInput) {
     const yearCO2 = yearPlantCO2
       + electricityResidual * newGridEF
       + heatResidual * newHeatEF;
-    const discountFactor = 1 / Math.pow(1 + discount, yearIndex);
-    const npvDiscountFactor = 1 / Math.pow(1 + discount, yearIndex + 1);
-    totalCost += yearCost * discountFactor;
+    const discountFactor = 1 / Math.pow(1 + discount, yearIndex + 1);
+    const npvDiscountFactor = discountFactor;
+    totalCost += investment + operatingCost * discountFactor;
     totalEmissions += yearCO2;
     pvPlantCO2 += yearPvPlantCO2;
     stPlantCO2 += yearStPlantCO2;
     baselineCostTotal += yearBaselineCost * discountFactor;
     baselineCO2Total += baselineCO2;
-    cumulativeDiscountedSavings += (yearBaselineCost - yearCost) * discountFactor;
+    cumulativeDiscountedSavings += (yearBaselineCost - operatingCost) * discountFactor - investment;
     investmentNpv += operatingSavings * npvDiscountFactor;
     years.push({
       yearIndex,
