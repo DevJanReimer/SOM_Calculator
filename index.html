@@ -135,7 +135,7 @@
 
       <div class="card panel">
         <h2>Inputs</h2>
-        <p class="section-note">Baseline consumption, rooftop options, and financial assumptions.</p>
+        <p class="section-note">Baseline consumption, rooftop options, scenario settings, and global model assumptions.</p>
 
         <div class="stack" style="margin-top:14px">
 
@@ -150,10 +150,13 @@
             </div>
           </div>
 
-          <!-- Current vs New energy mix -->
+          <div class="section-heading">
+            <h3>Energy source comparison</h3>
+            <p>Choose the purchased electricity and heating sources for the baseline and project scenarios.</p>
+          </div>
           <div class="scenario-grid">
-            <div class="scenario-col-label">Current (baseline)</div>
-            <div class="scenario-col-label">New (scenario)</div>
+            <div class="scenario-col-label">Baseline energy sources</div>
+            <div class="scenario-col-label">Project energy sources</div>
 
             <div class="field">
               <label for="electricityMix">Electricity mix</label>
@@ -196,22 +199,33 @@
             </div>
           </div>
 
-          <div class="grid-2">
-            <div class="field">
-              <label for="pvArea">Manual PV area x (m²)</label>
-              <div class="range-row"><input id="pvArea" type="range" min="0" max="303" step="1" value="120"><div class="range-value" id="pvAreaValue">120</div></div>
-              <div class="roof-pct-bar" id="pvRoofBar"><div class="roof-pct-fill roof-pct-pv" id="pvRoofFill"></div></div>
+          <div class="manual-settings-group">
+            <div class="section-heading">
+              <h3>Manual comparison scenario</h3>
+              <p>Only these two area controls define the manual scenario.</p>
             </div>
-
-            <div class="field">
-              <label for="stArea">Manual solar-thermal area y (m²)</label>
-              <div class="range-row"><input id="stArea" type="range" min="0" max="303" step="1" value="0"><div class="range-value" id="stAreaValue">0</div></div>
-              <div class="roof-pct-bar" id="stRoofBar">
-                <div class="roof-pct-fill roof-pct-pv" id="stPvFill"></div>
-                <div class="roof-pct-fill roof-pct-st" id="stStFill"></div>
+            <div class="grid-2">
+              <div class="field">
+                <label for="pvArea">Manual PV area x (m²)</label>
+                <div class="range-row"><input id="pvArea" type="range" min="0" max="303" step="1" value="120"><div class="range-value" id="pvAreaValue">120</div></div>
+                <div class="roof-pct-bar" id="pvRoofBar"><div class="roof-pct-fill roof-pct-pv" id="pvRoofFill"></div></div>
               </div>
-              <div class="roof-usage-label" id="roofUsageLabel"></div>
+
+              <div class="field">
+                <label for="stArea">Manual solar-thermal area y (m²)</label>
+                <div class="range-row"><input id="stArea" type="range" min="0" max="303" step="1" value="0"><div class="range-value" id="stAreaValue">0</div></div>
+                <div class="roof-pct-bar" id="stRoofBar">
+                  <div class="roof-pct-fill roof-pct-pv" id="stPvFill"></div>
+                  <div class="roof-pct-fill roof-pct-st" id="stStFill"></div>
+                </div>
+                <div class="roof-usage-label" id="roofUsageLabel"></div>
+              </div>
             </div>
+          </div>
+
+          <div class="section-heading shared-settings-heading">
+            <h3>Global model assumptions</h3>
+            <p>The following values are used wherever relevant in the baseline, manual, and Z-optimized scenarios.</p>
           </div>
 
           <div class="grid-3">
@@ -265,11 +279,15 @@
           </div>
 
           <div class="grid-2">
-            <div class="field"><label for="pvSelfShare">sc_Regler: PV self-consumption setting</label><div class="range-row"><input id="pvSelfShare" type="range" min="0.2" max="0.95" step="0.05" value="0.4"><div class="range-value" id="pvSelfShareValue">40%</div></div></div>
+            <div class="field">
+              <label for="pvSelfShare">sc_Regler: PV self-consumption setting</label>
+              <div class="range-row"><input id="pvSelfShare" type="range" min="0.2" max="0.95" step="0.05" value="0.4"><div class="range-value" id="pvSelfShareValue">40%</div></div>
+              <div class="field-hint" id="pvSelfShareHint">Reference share at full available-roof PV coverage (303 m²).</div>
+            </div>
             <div class="field">
               <label for="stUtilization">Minimum solar-thermal usable fraction</label>
               <div class="range-row"><input id="stUtilization" type="range" min="0.2" max="0.9" step="0.05" value="0.6"><div class="range-value" id="stUtilizationValue">60%</div></div>
-              <div class="field-hint">Usable share is 100% at 1 m² and declines to this minimum at full roof coverage.</div>
+              <div class="field-hint" id="stUtilizationHint">Usable share is 100% at 1 m² and declines to this minimum at full available-roof ST coverage (303 m²).</div>
             </div>
           </div>
 
@@ -344,27 +362,58 @@
         <button id="csvBtn" type="button">Export CSV</button>
       </div>
 
-      <div class="kpis" aria-live="polite">
-        <article class="kpi"><div class="label">CO₂ avoided</div><div class="value" id="kpiCo2">—</div><div class="sub" id="kpiCo2Sub">of baseline</div></article>
-        <article class="kpi"><div class="label">Optimization score Z</div><div class="value" id="kpiAbatement">—</div><div class="sub">weighted normalized score</div></article>
-        <article class="kpi"><div class="label">Future cost present value</div><div class="value" id="kpiNpv">—</div><div class="sub">K total</div></article>
-        <article class="kpi"><div class="label">Optimum x / y</div><div class="value" id="kpiPayback">—</div><div class="sub">m² PV / m² ST</div></article>
-        <article class="kpi"><div class="label">PV LCOE</div><div class="value" id="kpiLcoe">—</div><div class="sub">CHF per kWh</div></article>
-        <article class="kpi"><div class="label">Self-sufficiency</div><div class="value" id="kpiSelfSuff">—</div><div class="sub">electricity covered by on-site PV</div></article>
-        <article class="kpi"><div class="label">Future emissions total</div><div class="value" id="kpiCarbonPb">—</div><div class="sub">E total over 25 years</div></article>
-        <article class="kpi"><div class="label">Optimized initial investment</div><div class="value" id="kpiCapex">—</div><div class="sub">Z-optimized scenario · CHF</div></article>
+      <div class="kpi-groups" aria-live="polite">
+        <section class="kpi-group">
+          <h3>Optimized recommendation</h3>
+          <div class="kpis kpis-3">
+            <article class="kpi kpi-primary"><div class="label">Optimum x / y</div><div class="value" id="kpiPayback">—</div><div class="sub">m² PV / m² ST</div></article>
+            <article class="kpi"><div class="label">Initial investment</div><div class="value" id="kpiCapex">—</div><div class="sub">Z-optimized scenario</div></article>
+            <article class="kpi"><div class="label">Objective score Z</div><div class="value" id="kpiAbatement">—</div><div class="sub">lower weighted normalized score is better</div></article>
+          </div>
+        </section>
+
+        <section class="kpi-group">
+          <h3>Environmental impact</h3>
+          <div class="kpis kpis-2">
+            <article class="kpi"><div class="label">CO₂ avoided</div><div class="value" id="kpiCo2">—</div><div class="sub" id="kpiCo2Sub">of baseline</div></article>
+            <article class="kpi"><div class="label">Emissions total</div><div class="value" id="kpiCarbonPb">—</div><div class="sub">over the selected project horizon</div></article>
+          </div>
+        </section>
+
+        <section class="kpi-group">
+          <h3>Energy performance</h3>
+          <div class="kpis kpis-2">
+            <article class="kpi"><div class="label">PV self-consumption</div><div class="value" id="kpiPvSelfConsumption">—</div><div class="sub">share of year-1 PV production used on site</div></article>
+            <article class="kpi"><div class="label">Self-sufficiency</div><div class="value" id="kpiSelfSuff">—</div><div class="sub">electricity covered by on-site PV</div></article>
+          </div>
+        </section>
       </div>
 
       <div class="card adjust-panel">
-        <h3>Manual scenario</h3>
-        <div class="adjust-grid">
-          <div class="field"><label for="rPvArea">Manual PV area x (m²)</label><div class="range-row"><input id="rPvArea" type="range" min="0" max="303" step="1" value="120"><div class="range-value" id="rPvAreaValue">120</div></div></div>
-          <div class="field"><label for="rStArea">Manual solar-thermal area y (m²)</label><div class="range-row"><input id="rStArea" type="range" min="0" max="303" step="1" value="0"><div class="range-value" id="rStAreaValue">0</div></div></div>
-          <div class="field"><label for="rPvSelfShare">PV self-consumption share</label><div class="range-row"><input id="rPvSelfShare" type="range" min="0.2" max="0.95" step="0.05" value="0.4"><div class="range-value" id="rPvSelfShareValue">40%</div></div></div>
-          <div class="field">
-            <label for="rOptimizationWeight">Gewichtungsfaktor w (Kosten ↔ CO₂)</label>
-            <div class="range-row"><input id="rOptimizationWeight" type="range" min="0" max="1" step="0.05" value="0.5"><div class="range-value" id="rOptimizationWeightValue">50%</div></div>
-            <div class="field-hint">w = 0 → CO₂-optimal; w = 1 → kostenoptimal</div>
+        <div class="result-adjust-section manual-result-controls">
+          <div class="result-adjust-heading">
+            <h3>Manual scenario areas</h3>
+            <p>These two controls only change the manual comparison scenario.</p>
+          </div>
+          <div class="adjust-grid adjust-grid-2">
+            <div class="field"><label for="rPvArea">Manual PV area x (m²)</label><div class="range-row"><input id="rPvArea" type="range" min="0" max="303" step="1" value="120"><div class="range-value" id="rPvAreaValue">120</div></div></div>
+            <div class="field"><label for="rStArea">Manual solar-thermal area y (m²)</label><div class="range-row"><input id="rStArea" type="range" min="0" max="303" step="1" value="0"><div class="range-value" id="rStAreaValue">0</div></div></div>
+          </div>
+        </div>
+
+        <div class="result-adjust-section">
+          <div class="result-adjust-heading">
+            <h3>Model and optimization controls</h3>
+            <p>PV and solar-thermal utilization affect manual and optimized scenarios. The weighting factor controls the optimization.</p>
+          </div>
+          <div class="adjust-grid">
+            <div class="field"><label for="rPvSelfShare">PV self-consumption setting</label><div class="range-row"><input id="rPvSelfShare" type="range" min="0.2" max="0.95" step="0.05" value="0.4"><div class="range-value" id="rPvSelfShareValue">40%</div></div></div>
+            <div class="field"><label for="rStUtilization">Minimum solar-thermal usable fraction</label><div class="range-row"><input id="rStUtilization" type="range" min="0.2" max="0.9" step="0.05" value="0.6"><div class="range-value" id="rStUtilizationValue">60%</div></div></div>
+            <div class="field">
+              <label for="rOptimizationWeight">Weighting factor w: NPV vs. CO₂</label>
+              <div class="range-row"><input id="rOptimizationWeight" type="range" min="0" max="1" step="0.05" value="0.5"><div class="range-value" id="rOptimizationWeightValue">50%</div></div>
+              <div class="field-hint">w = 0 minimizes CO₂; w = 1 maximizes NPV.</div>
+            </div>
           </div>
         </div>
       </div>
@@ -386,7 +435,7 @@
 
       <div class="two-charts">
         <div class="card chart-card">
-          <header><div><h3>PV production lifecycle</h3><div class="chart-note">Annual output declining due to panel degradation. Amber dashed line = financial payback year.</div></div></header>
+          <header><div><h3>PV production lifecycle</h3><div class="chart-note">Annual output declining due to plant degradation. Hover over the line to inspect yearly production.</div></div></header>
           <div id="pvLifecycleChart" class="chart-wrap"></div>
         </div>
         <div class="card chart-card">
@@ -405,43 +454,31 @@
         </div>
       </div>
 
-      <div class="optimizer">
-        <div class="card chart-card">
-          <header>
-            <div><h3>Z-optimized recommendation</h3><div class="chart-note">Best split for the selected weighting factor w. Set w = 0 to optimize only CO2 emissions.</div></div>
-            <div class="pill-row">
-              <span class="pill good" id="optimizerCostBadge">x* = —</span>
-              <span class="pill warn" id="optimizerCo2Badge">max CO₂ = —</span>
-            </div>
-          </header>
-          <div class="chart-note" id="optimizerReason"></div>
-          <div id="optimizerChart" class="chart-wrap"></div>
-        </div>
-
-        <div class="stack">
+      <div class="stack results-summary-stack">
           <div class="card chart-card">
-            <header><div><h3>Manual vs. Z-optimized</h3><div class="chart-note">Selected scenario compared with the weighted objective optimum.</div></div></header>
-            <table class="summary-table" id="summaryTable">
-              <thead><tr><th>Metric</th><th>Value</th></tr></thead>
-              <tbody></tbody>
-            </table>
+            <header><div><h3>Scenario comparison</h3><div class="chart-note">Baseline, manual scenario, and weighted Z-optimized recommendation side by side.</div></div></header>
+            <div class="table-scroll">
+              <table class="summary-table" id="summaryTable">
+                <thead><tr><th>Metric</th><th>Baseline</th><th>Manual</th><th>Z-optimized</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
           </div>
           <details open>
             <summary>Method notes</summary>
             <div class="details-body">
               <ul>
-                <li>Baseline CO₂ = electricity use × current grid factor + heat use × current heat-carrier factor.</li>
-                <li>Scenario CO₂ = residual electricity × new grid factor + residual heat × new heat-carrier factor.</li>
-                <li>PV and solar-thermal plant emissions are calculated annually from degraded energy production × the respective kgCO₂e/kWh factor.</li>
-                <li>PV production is split by the self-consumption share: sc reduces grid purchases, and (1 - sc) receives the feed-in credit.</li>
-                <li>Solar thermal is capped by the declared useful heat load and degrades annually.</li>
-                <li>NPV discounts yearly net cashflows. Abatement cost annualizes CAPEX over the horizon.</li>
-                <li>PV lifecycle chart shows year-by-year kWh output; the amber dashed line marks when cumulative NPV turns positive.</li>
-                <li>CO₂ factors from Swiss LCA data (WWZ mix: 0.078 kgCO₂e/kWh; wood chips: 0.025 kgCO₂e/kWh). Adjustable via Expert settings.</li>
+                <li>Baseline CO₂ uses annual electricity demand × baseline electricity factor plus annual heat demand × baseline heat factor.</li>
+                <li>Manual and Z-optimized CO₂ use residual grid electricity, residual heating demand, and annual PV/ST plant emissions from degraded production × kgCO₂e/kWh.</li>
+                <li>PV self-consumption is calculated from the self-consumption setting, PV area, available roof area, and optional battery effect; exported PV receives the feed-in credit.</li>
+                <li>PV and solar-thermal output both degrade annually; solar thermal is additionally multiplied by the usable-fraction curve before reducing heating demand.</li>
+                <li>Investment NPV = initial investment as a negative cashflow plus discounted yearly operating savings, feed-in revenue, and maintenance costs.</li>
+                <li>The Z-optimized scenario minimizes the weighted objective: w prioritizes NPV, while 1 - w prioritizes lifecycle CO₂ emissions.</li>
+                <li>PV lifecycle and cashflow charts are hoverable; the cashflow chart marks break-even when cumulative NPV turns positive.</li>
+                <li>CO₂ factors and cost rates can be adjusted in Expert settings.</li>
               </ul>
             </div>
           </details>
-        </div>
       </div>
 
       <div class="footer">University of Zurich · Municipality of Oberägeri · Web calculator for the Rathaus case study.</div>
