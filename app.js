@@ -13,7 +13,7 @@ const DEFAULTS = {
   feedInTariff: 0.11,
   optimizationWeight: 0.5,
   budgetEnabled: false,
-  budgetLimit: 100000,
+  budgetLimit: 200000,
   batteryEnabled: false,
   batteryCostInput: 16940,
   batteryDegradation: 2,
@@ -1019,7 +1019,7 @@ function refresh() {
 
   renderStackedBarChart($('snapshotChart'), state, scenario, optimum);
   renderEmissionsTimelineChart($('emissionsTimelineChart'), state, scenario, optimum);
-  renderPvLifecycleChart($('pvLifecycleChart'), state, lifecycle);
+  renderPvLifecycleChart($('pvLifecycleChart'), state, optimizedLifecycle);
   renderLineChart($('cashflowChart'), cashflowSeries, lifecycle.years.map(String), {
     tickDecimals: 0,
     paybackYearIndex: cashflowPaybackYear,
